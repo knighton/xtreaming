@@ -2,7 +2,7 @@
 
 #include "base/string.h"
 
-using namespace streaming;
+using namespace xtreaming;
 
 int main() {
     string s;

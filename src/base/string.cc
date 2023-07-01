@@ -1,6 +1,6 @@
 #include "string.h"
 
-namespace streaming {
+namespace xtreaming {
 namespace {
 
 void InternalStringPrintf(string* output, const char* format, va_list ap) {
@@ -144,4 +144,4 @@ fail:
     return false;
 }
 
-}  // namespace streaming
+}  // namespace xtreaming
