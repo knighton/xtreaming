@@ -5,10 +5,12 @@
 namespace xtreaming {
 
 void Spanner::Init(const vector<int64_t>& span_sizes, int64_t slot_size) {
+    assert(0 < slot_size);
     span_ends_.clear();
     span_ends_.reserve(span_sizes.size());
     int64_t offset = 0;
     for (auto& size : span_sizes) {
+        assert(0 < size);
         offset += size;
         span_ends_.emplace_back(offset);
     }

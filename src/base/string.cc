@@ -1,5 +1,7 @@
 #include "string.h"
 
+#include <cctype>
+
 namespace xtreaming {
 namespace {
 
@@ -142,6 +144,52 @@ fail:
                           "one of more decimal digits followed an optional lowercase unit (`b`, "
                           "`kb`, `mb`, `gb`, `tb`, or `eb`). Got: `%s`", text.c_str());
     return false;
+}
+
+void SplitStringByChar(const string& text, char delim, vector<string>* parts) {
+    parts->clear();
+
+    int64_t i;
+    int64_t begin = 0;
+    for (i = 0; i < text.size(); ++i) {
+        auto& chr = text[i];
+        if (chr == delim) {
+            auto part = text.substr(begin, i - begin);
+            parts->emplace_back(part);
+            begin = i + 1;
+        }
+    }
+
+    auto part = text.substr(begin, i - begin);
+    parts->emplace_back(part);
+}
+
+void SplitStringByWhitespace(const string& text, vector<string>* parts) {
+    parts->clear();
+
+    bool in_word = false;
+    int64_t i;
+    int64_t begin = -1L;
+    for (i = 0; i < text.size(); ++i) {
+        auto& chr = text[i];
+        if (in_word) {
+            if (isspace(chr)) {
+                in_word = false;
+                auto part = text.substr(begin, i - begin);
+                parts->emplace_back(part);
+            }
+        } else {
+            if (!isspace(chr)) {
+                in_word = true;
+                begin = i;
+            }
+        }
+    }
+
+    if (in_word) {
+        auto part = text.substr(begin, i - begin);
+        parts->emplace_back(part);
+    }
 }
 
 }  // namespace xtreaming
