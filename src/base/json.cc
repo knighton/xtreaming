@@ -76,22 +76,15 @@ bool GetNumBytes(const json& obj, const string& key, int64_t def, int64_t* ret, 
     }
 }
 
-bool GetString(const json& obj, const string& key, const string& def, string* buf, char** ret,
-               string* err) {
+bool GetString(const json& obj, const string& key, const string& def, string* ret, string* err) {
     if (!obj.contains(key)) {
-        int64_t dest = buf->size();
-        *ret = &(*buf)[dest];
-        buf->resize(dest + def.size());
-        strncpy(&(*buf)[dest], def.c_str(), def.size());
-        *buf += '\0';
+        *ret = def;
         return true;
     }
     
     auto& val = obj[key];
     if (val.is_string()) {
-        *ret = &(*buf)[buf->size()];
-        (*buf) += val;
-        (*buf) += '\0';
+        *ret = val;
         return true;
     } else {
         *err = StringPrintf("`%s` must be a string.", key.c_str());

@@ -6,27 +6,25 @@
 using namespace xtreaming;
 
 int main() {
-    json obj;
-    string buf;
-    char* ret;
+    json obj = {
+        {"key", "val"}
+    };
+
+    string ret;
     string err;
-
-    obj["key"] = "val";
-
-    assert(GetString(obj, "key", "default", &buf, &ret, &err));
-    assert(!strcmp(buf.data(), "val"));
-    assert(!strcmp(ret, "val"));
+    assert(GetString(obj, "key", "default", &ret, &err));
+    assert(ret == "val");
     assert(err.empty());
 
-    assert(GetString(obj, "key", "default", &buf, &ret, &err));
-    assert(buf.size() == 8);
-    assert(!strcmp(buf.data(), "val\0val"));
-    assert(!strcmp(ret, "val"));
+    assert(GetString(obj, "key", "default", &ret, &err));
+    assert(ret == "val");
     assert(err.empty());
 
-    assert(GetString(obj, "dne", "default", &buf, &ret, &err));
-    assert(buf.size() == 16);
-    assert(!strcmp(buf.data(), "val\0val\0default"));
-    assert(!strcmp(ret, "default"));
+    assert(GetString(obj, "dne", "default", &ret, &err));
+    assert(ret == "default");
     assert(err.empty());
+
+    obj["key"] = 42;
+    assert(!GetString(obj, "key", "default", &ret, &err));
+    assert(err == "`key` must be a string.");
 }
