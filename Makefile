@@ -26,8 +26,10 @@ SOURCES = `find src/ -type f -name "*.cc"`
 all:
 	mkdir -p bin/base/
 	$(CXX) $(FLAGS) $(SOURCES) src/base/json_test.cpp -o bin/base/json_test
+	$(CXX) $(FLAGS) $(SOURCES) src/base/spanner_test.cpp -o bin/base/spanner_test
 	$(CXX) $(FLAGS) $(SOURCES) src/base/string_test.cpp -o bin/base/string_test
 
 test:
 	./bin/base/json_test
+	./bin/base/spanner_test
 	./bin/base/string_test
