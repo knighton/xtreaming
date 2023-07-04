@@ -85,20 +85,56 @@ void TestSplitStringByChar() {
     assert(v_want == v_got);
 }
 
-void TestSplitStringByWhitespace() {
+void TestSplitString() {
     string s;
     vector<string> v_want;
     vector<string> v_got;
 
     s = "";
     v_want = {};
-    SplitStringByWhitespace(s, &v_got);
+    SplitString(s, &v_got);
     assert(v_want == v_got);
 
     s = " one two three  ";
     v_want = {"one", "two", "three"};
-    SplitStringByWhitespace(s, &v_got);
+    SplitString(s, &v_got);
     assert(v_want == v_got);
+}
+
+void TestTrimString() {
+    string s;
+    string want;
+    string got;
+
+    s = "";
+    want = "";
+    TrimString(s, &got);
+    assert(want == got);
+
+    s = "a  ";
+    want = "a";
+    TrimString(s, &got);
+    assert(want == got);
+
+    s = "  a";
+    want = "a";
+    TrimString(s, &got);
+    assert(want == got);
+
+    s = "  a  ";
+    want = "a";
+    TrimString(s, &got);
+    assert(want == got);
+
+    s = "  a  b  ";
+    want = "a  b";
+    TrimString(s, &got);
+    assert(want == got);
+
+    s = "a b";
+    want = "a b";
+    TrimString(s, &got);
+    assert(want == got);
 }
 
 }  // namespace
@@ -106,5 +142,6 @@ void TestSplitStringByWhitespace() {
 int main() {
     TestParseNumBytes();
     TestSplitStringByChar();
-    TestSplitStringByWhitespace();
+    TestSplitString();
+    TestTrimString();
 }

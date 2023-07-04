@@ -21,6 +21,9 @@ bool ParseNumBytes(const string& text, int64_t* bytes, string* error);
 void SplitStringByChar(const string& text, char chr, vector<string>* parts);
 
 // Python-style string split.
-void SplitStringByWhitespace(const string& text, vector<string>* parts);
+void SplitString(const string& text, vector<string>* parts);
+
+// Trim the given string on both sides.
+void TrimString(const string& in, string* out);
 
 }  // namespace xtreaming

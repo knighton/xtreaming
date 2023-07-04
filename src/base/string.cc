@@ -164,7 +164,7 @@ void SplitStringByChar(const string& text, char delim, vector<string>* parts) {
     parts->emplace_back(part);
 }
 
-void SplitStringByWhitespace(const string& text, vector<string>* parts) {
+void SplitString(const string& text, vector<string>* parts) {
     parts->clear();
 
     bool in_word = false;
@@ -190,6 +190,24 @@ void SplitStringByWhitespace(const string& text, vector<string>* parts) {
         auto part = text.substr(begin, i - begin);
         parts->emplace_back(part);
     }
+}
+
+void TrimString(const string& in, string* out) {
+    int i;
+    for (i = 0; i < in.size(); ++i ){
+        if (!isspace(in[i])) {
+            break;
+        }
+    }
+
+    int j;
+    for (j = (int)in.size() - 1; i < j; --j) {
+        if (!isspace(in[j])) {
+            break;
+        }
+    }
+
+    *out = in.substr(i, j - i + 1);
 }
 
 }  // namespace xtreaming
