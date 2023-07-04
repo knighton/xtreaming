@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -13,6 +14,10 @@ namespace xtreaming {
 void SStringPrintf(string* output, const char* format, ...);
 void StringAppendF(string* output, const char* format, ...);
 string StringPrintf(const char* format, ...);
+
+// Parse ints and floats.
+bool ParseInt(const string& text, int64_t* ret);
+bool ParseFloat(const string& text, double* ret);
 
 // Parse a bytes string (e.g. "7", 7b, 7kb, 7mb, 7gb, 7tb, 7pb, 7eb) to integer.
 bool ParseNumBytes(const string& text, int64_t* bytes, string* error);

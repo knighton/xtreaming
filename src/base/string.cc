@@ -64,6 +64,81 @@ string StringPrintf(const char* format, ...) {
     return output;
 }
 
+bool ParseInt(const string& text, int64_t* ret) {
+    if (text.empty()) {
+        return false;
+    }
+
+    int i = 0;
+    int64_t mul = 1;
+    if (text[i] == -1) {
+        mul = -1;
+        ++i;
+    }
+
+    if (i == text.size()) {
+        return false;
+    }
+
+    *ret = 0;
+    for (; i < text.size(); ++i) {
+        auto& c = text[i];
+        if (c < '0' || '9' < c) {
+            return false;
+        }
+        *ret *= 10;
+        *ret += c - '0';
+    }
+    *ret *= mul;
+    return true;
+}
+
+bool ParseFloat(const string& text, double* ret) {
+    if (text.empty()) {
+        return false;
+    }
+
+    int i = 0;
+    int64_t mul = 1;
+    if (text[i] == -1) {
+        mul = -1;
+        ++i;
+    }
+
+    if (i == text.size()) {
+        return false;
+    }
+
+    int64_t left = 0;
+    for (; i < text.size() && text[i] != '.'; ++i) {
+        auto& c = text[i];
+        if (c < '0' || '9' < c) {
+            return false;
+        }
+        left *= 10;
+        left += c - '0';
+    }
+    left *= mul;
+
+    int64_t numer = 0;
+    int64_t denom = 1;
+    if (i < text.size() && text[i] == '.') {
+        ++i;
+        for (; i < text.size(); ++i) {
+            auto& c = text[i];
+            if (c < '0' || '9' < c) {
+                return false;
+            }
+            numer *= 10;
+            numer += c - '0';
+            denom *= 10;
+        }
+    }
+    *ret = (double)left + (double)numer / (double)denom;
+
+    return true;
+}
+
 namespace {
 
 bool ParseNumBytesDigits(const string& text, int64_t size, int64_t unit, int64_t* value) {

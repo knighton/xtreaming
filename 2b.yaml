@@ -1,0 +1,72 @@
+version: x0.0
+stream:
+  remote: null
+  local: null
+  split: null
+  download_retry: 3
+  download_timeout: 60s
+  hashes: null
+  non_hashed_ok: true
+streams:
+  c4:
+    remote: oci://path/to/c4
+    local: /dataset/mds/c4
+    split: train
+    proportion: 0.299
+  markdown:
+    remote: oci://path/to/markdown
+    local: /dataset/mds/markdown
+    proportion: 0.045
+  mc4:
+    remote: oci://path/to/mc4
+    local: /dataset/mds/mc4
+    proportion: 0.335
+  redpajama:
+    remote: oci://path/to/redpajama
+    local: /dataset/mds/redpajama
+    proportion: 0.085
+  redpajama-arxiv:
+    remote: oci://path/to/redpajama-arxiv
+    local: /dataset/mds/redpajama-arxiv
+    proportion: 0.019
+  redpajama-books:
+    remote: oci://path/to/redpajama-books
+    local: /dataset/mds/redpajama-books
+    proportion: 0.03
+  redpajama-stackexchange:
+    remote: oci://path/to/redpajama-stackexchange
+    local: /dataset/mds/redpajama-stackexchange
+    proportion: 0.014
+  redpajama-wiki:
+    remote: oci://path/to/redpajama-wiki
+    local: /dataset/mds/redpajama-wiki
+    proportion: 0.04
+  s2:
+    remote: oci://path/to/s2
+    local: /dataset/mds/s2
+    split: train
+    proportion: 0.033
+  stack:
+    remote: oci://path/to/stack
+    local: /dataset/mds/stack
+    proportion: 0.1
+shard_index:
+  slot_size: 1024
+sampler:
+  algo: c:m2
+  seed: 1337
+  epoch_size: 2b
+  strategy: balanced
+determiner:
+  algo: d:orig
+  canonical_nodes: 64
+  batch_size: 4
+shuffle: true
+shuffler:
+  algo: s:s1br
+  seed: 1337
+  block_size: 1m
+downloader:
+  prefetch: 1024
+  concurrency: 64
+  cache_limit: 100gb
