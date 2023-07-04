@@ -16,15 +16,17 @@ void StringAppendF(string* output, const char* format, ...);
 string StringPrintf(const char* format, ...);
 
 // Parse ints and floats.
-bool ParseInt(const string& text, int64_t* ret);
-bool ParseFloat(const string& text, double* ret);
+bool ParseInt(const string& txt, int64_t* ret);
+bool ParseFloat(const string& txt, double* ret);
 
-// Parse a bytes string (e.g. "7", 7b, 7kb, 7mb, 7gb, 7tb, 7pb, 7eb) to integer.
-bool ParseNumBytes(const string& text, int64_t* bytes, string* error);
+// Parse bytes (`7kb`), counts (`7k`), and times (`7s`).
+bool ParseBytes(const string& txt, int64_t* ret, string* err);
+bool ParseCount(const string& txt, int64_t* ret, string* err);
+bool ParseTime(const string& txt, double* ret, string* err);
 
 // Split.
-void SplitString(const string& text, char chr, vector<string>* parts);  // By char.
-void SplitString(const string& text, vector<string>* parts);            // Python-style.
+void SplitString(const string& txt, char chr, vector<string>* ret);  // By char.
+void SplitString(const string& txt, vector<string>* ret);            // Python-style.
 
 // Trim.
 void TrimString(const string& in, string* out);

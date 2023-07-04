@@ -13,7 +13,10 @@ bool GetBool(const json& obj, const string& key, bool def, bool* ret, string* er
     }
 
     auto& val = obj[key];
-    if (val.is_boolean()) {
+    if (val.is_null()) {
+        *ret = def;
+        return true;
+    } else if (val.is_boolean()) {
         *ret = val;
         return true;
     } else {
@@ -29,7 +32,10 @@ bool GetInt64(const json& obj, const string& key, int64_t def, int64_t* ret, str
     }
 
     auto& val = obj[key];
-    if (val.is_number_integer()) {
+    if (val.is_null()) {
+        *ret = def;
+        return true;
+    } else if (val.is_number_integer()) {
         *ret = val;
         return true;
     } else {
@@ -54,14 +60,17 @@ bool GetUInt32(const json& obj, const string& key, uint32_t def, uint32_t* ret, 
     return true;
 }
 
-bool GetNumBytes(const json& obj, const string& key, int64_t def, int64_t* ret, string* err) {
+bool GetBytes(const json& obj, const string& key, int64_t def, int64_t* ret, string* err) {
     if (!obj.contains(key)) {
         *ret = def;
         return true;
     }
 
     auto& val = obj[key];
-    if (val.is_number_integer()) {
+    if (val.is_null()) {
+        *ret = def;
+        return true;
+    } else if (val.is_number_integer()) {
         *ret = val;
         return true;
     } else if (val.is_string()) {
@@ -69,7 +78,7 @@ bool GetNumBytes(const json& obj, const string& key, int64_t def, int64_t* ret, 
             *err = StringPrintf("Bytes string `%s` is empty.", key.c_str());
             return false;
         }
-        return ParseNumBytes(val, ret, err);
+        return ParseBytes(val, ret, err);
     } else {
         *err = StringPrintf("`%s` must be either an integer or a bytes string.", key.c_str());
         return false;
@@ -83,11 +92,34 @@ bool GetString(const json& obj, const string& key, const string& def, string* re
     }
     
     auto& val = obj[key];
-    if (val.is_string()) {
+    if (val.is_null()) {
+        *ret = def;
+        return true;
+    } else if (val.is_string()) {
         *ret = val;
         return true;
     } else {
         *err = StringPrintf("`%s` must be a string.", key.c_str());
+        return false;
+    }
+}
+
+bool GetObject(const json& obj, const string& key, const json* def, const json** ret,
+               string* err) {
+    if (!obj.contains(key)) {
+        *ret = def;
+        return true;
+    }
+
+    auto& val = obj[key];
+    if (val.is_null()) {
+        *ret = def;
+        return true;
+    } else if (val.is_object()) {
+        *ret = &val;
+        return true;
+    } else {
+        *err = StringPrintf("`%s` must be an object.", key.c_str());
         return false;
     }
 }

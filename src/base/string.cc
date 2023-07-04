@@ -141,84 +141,139 @@ bool ParseFloat(const string& text, double* ret) {
 
 namespace {
 
-bool ParseNumBytesDigits(const string& text, int64_t size, int64_t unit, int64_t* value) {
-    if (text.empty()) {
+bool ParseSubDigits(const string& txt, int64_t size, int64_t* ret, string* err) {
+    if (txt.empty() || !size) {
+        *err = StringPrintf("Empty digits substring: `%s`.", txt.c_str());
         return false;
     }
 
-    *value = 0;
+    *ret = 0;
     for (int64_t i = 0; i < size; ++i) {
-        auto& chr = text[i];
+        auto& chr = txt[i];
         if (chr < '0' || '9' < chr) {
+            *err = StringPrintf("Digits substring contains non-digit (%c): `%s`.", chr,
+                                txt.c_str());
             return false;
         }
 
-        *value *= 10;
-        *value += chr - '0';
+        *ret *= 10;
+        *ret += chr - '0';
     }
-    *value *= unit;
+    return true;
+}
+
+bool ParseBytesUnit(char chr, int64_t* unit) {
+    switch (chr) {
+      case 'k':
+        *unit = 1L << 10;
+        break;
+      case 'm':
+        *unit = 1L << 20;
+        break;
+      case 'g':
+        *unit = 1L << 30;
+        break;
+      case 't':
+        *unit = 1L << 40;
+        break;
+      case 'p':
+        *unit = 1L << 50;
+        break;
+      case 'e':
+        *unit = 1L << 60;
+        break;
+      default:
+        return false;
+    }
+    return true;
+}
+
+bool ParseCountUnit(char chr, int64_t* unit) {
+    switch (chr) {
+      case 'k':
+        *unit = 1L << 10;
+        break;
+      case 'm':
+        *unit = 1L << 20;
+        break;
+      case 'b':
+        *unit = 1L << 30;
+        break;
+      case 't':
+        *unit = 1L << 40;
+        break;
+      default:
+        return false;
+    }
     return true;
 }
 
 }  // namespace
 
-bool ParseNumBytes(const string& text, int64_t* bytes, string* error) {
-    int64_t size;
-    int64_t unit;
-    char chr;
-
-    if (text.empty()) {
-        *error = "Attempted to parse an empty bytes string.";
+bool ParseBytes(const string& txt, int64_t* ret, string* err) {
+    if (txt.empty()) {
+        *err = "Attmpted to parse empty bytes string.";
         return false;
     }
 
-    if (text.size() == 1 || text[text.size() - 1] != 'b') {
-        if (ParseNumBytesDigits(text, text.size(), 1, bytes)) {
-            return true;
-        } else {
-            goto fail;
-        }
+    if (txt.size() == 1 || txt[txt.size() - 1] != 'b') {
+        return ParseSubDigits(txt, txt.size(), ret, err);
     }
 
-    chr = text[text.size() - 2];
+    int64_t num_digits;
+    int64_t unit;
+    auto& chr = txt[txt.size() - 2];
     if ('0' <= chr && chr <= '9') {
-        size = text.size() - 1;
+        num_digits = txt.size() - 1;
         unit = 1;
     } else {
-        size = text.size() - 2;
-        switch (chr) {
-          case 'k':
-            unit = 1L << 10;
-            break;
-          case 'm':
-            unit = 1L << 20;
-            break;
-          case 'g':
-            unit = 1L << 30;
-            break;
-          case 't':
-            unit = 1L << 40;
-            break;
-          case 'p':
-            unit = 1L << 50;
-            break;
-          case 'e':
-            unit = 1L << 60;
-            break;
-          default:
-            goto fail;
+        num_digits = txt.size() - 2;
+        if (!ParseBytesUnit(chr, &unit)) {
+            *err = StringPrintf("Unknown unit (%c): `%s`.", chr, txt.c_str());
+            return false;
         }
     }
 
-    if (ParseNumBytesDigits(text, size, unit, bytes)) {
-        return true;
+    if (!ParseSubDigits(txt, num_digits, ret, err)) {
+        return false;
     }
 
-fail:
-    *error = StringPrintf("Attempted to parse a malformed bytes string. Bytes strings consist of "
-                          "one of more decimal digits followed an optional lowercase unit (`b`, "
-                          "`kb`, `mb`, `gb`, `tb`, or `eb`). Got: `%s`", text.c_str());
-    return false;
+    *ret *= unit;
+    return true;
+}
+
+bool ParseCount(const string& txt, int64_t* ret, string* err) {
+    if (txt.empty()) {
+        *err = "Attmpted to parse empty count string.";
+        return false;
+    }
+
+    int64_t num_digits;
+    int64_t unit;
+    auto& chr = txt[txt.size() - 1];
+    if ('0' <= chr && chr <= '9') {
+        num_digits = txt.size();
+        unit = 1;
+    } else {
+        num_digits = txt.size() - 1;
+        if (!ParseCountUnit(chr, &unit)) {
+            *err = StringPrintf("Unknown unit (%c): `%s`.", chr, txt.c_str());
+            return false;
+        }
+    }
+
+    if (!ParseSubDigits(txt, num_digits, ret, err)) {
+        return false;
+    }
+
+    *ret *= unit;
+    return true;
+}
+
+bool ParseTime(const string& txt, double* ret, string* err) {
+    *ret = 0;
+    *err = "Parsing times is not supported yet.";
+    return false;  // TODO
 }
 
 void SplitString(const string& text, char delim, vector<string>* parts) {
