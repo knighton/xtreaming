@@ -17,13 +17,11 @@ string StringPrintf(const char* format, ...);
 // Parse a bytes string (e.g. "7", 7b, 7kb, 7mb, 7gb, 7tb, 7pb, 7eb) to integer.
 bool ParseNumBytes(const string& text, int64_t* bytes, string* error);
 
-// Split by chr.
-void SplitStringByChar(const string& text, char chr, vector<string>* parts);
+// Split.
+void SplitString(const string& text, char chr, vector<string>* parts);  // By char.
+void SplitString(const string& text, vector<string>* parts);            // Python-style.
 
-// Python-style string split.
-void SplitString(const string& text, vector<string>* parts);
-
-// Trim the given string on both sides.
+// Trim.
 void TrimString(const string& in, string* out);
 
 }  // namespace xtreaming

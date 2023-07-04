@@ -146,7 +146,7 @@ fail:
     return false;
 }
 
-void SplitStringByChar(const string& text, char delim, vector<string>* parts) {
+void SplitString(const string& text, char delim, vector<string>* parts) {
     parts->clear();
 
     int64_t i;

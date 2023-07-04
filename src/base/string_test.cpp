@@ -63,29 +63,29 @@ void TestSplitStringByChar() {
     s = "";
     c = 'a';
     v_want = {""};
-    SplitStringByChar(s, c, &v_got);
+    SplitString(s, c, &v_got);
     assert(v_want == v_got);
 
     s = "a";
     c = ' ';
     v_want = {"a"};
-    SplitStringByChar(s, c, &v_got);
+    SplitString(s, c, &v_got);
     assert(v_want == v_got);
 
     s = "a";
     c = 'a';
     v_want = {"", ""};
-    SplitStringByChar(s, c, &v_got);
+    SplitString(s, c, &v_got);
     assert(v_want == v_got);
 
     s = "one two three";
     c = ' ';
     v_want = {"one", "two", "three"};
-    SplitStringByChar(s, c, &v_got);
+    SplitString(s, c, &v_got);
     assert(v_want == v_got);
 }
 
-void TestSplitString() {
+void TestSplitStringByWhitespace() {
     string s;
     vector<string> v_want;
     vector<string> v_got;
@@ -142,6 +142,6 @@ void TestTrimString() {
 int main() {
     TestParseNumBytes();
     TestSplitStringByChar();
-    TestSplitString();
+    TestSplitStringByWhitespace();
     TestTrimString();
 }
