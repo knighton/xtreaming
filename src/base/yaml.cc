@@ -14,7 +14,7 @@ namespace xtreaming {
 namespace {
 
 bool Build(const vector<string>& lines, const vector<vector<int>>& children, int index,
-           json* obj, string* error) {
+           json* obj, string* err) {
     long colon;
     string key;
     string val;
@@ -24,14 +24,14 @@ bool Build(const vector<string>& lines, const vector<vector<int>>& children, int
         auto& line = lines[child];
         colon = line.find(':');
         if (colon == string::npos) {
-            *error = StringPrintf("No `:` found on line %d: `%s`.", child, line.c_str());
+            *err = StringPrintf("No `:` found on line %d: `%s`.", child, line.c_str());
             return false;
         }
 
         TrimString(line.substr(0, colon), &key);
         if (!children[1 + child].empty()) {
             (*obj)[key] = json::object();
-            if (!Build(lines, children, child, &(*obj)[key], error)) {
+            if (!Build(lines, children, child, &(*obj)[key], err)) {
                 return false;
             }
         } else {
@@ -57,10 +57,10 @@ bool Build(const vector<string>& lines, const vector<vector<int>>& children, int
 
 }  // namespace
 
-bool ParseYAML(const string& text, json* obj, string* error) {
+bool ParseYAML(const string& txt, json* obj, string* err) {
     // Get lines.
     vector<string> lines;
-    SplitString(text, '\n', &lines);
+    SplitString(txt, '\n', &lines);
 
     // Get indents.
     vector<int> indents;
@@ -80,7 +80,7 @@ bool ParseYAML(const string& text, json* obj, string* error) {
             continue;
         }
         if (j % 2) {
-            *error = StringPrintf("Irregular indent on line %d: `%s`.", i, line.c_str());
+            *err = StringPrintf("Irregular indent on line %d: `%s`.", i, line.c_str());
             return false;
         }
         indents.emplace_back(j / 2);
@@ -101,7 +101,7 @@ bool ParseYAML(const string& text, json* obj, string* error) {
     }
 
     // Recursively build the tree.
-    return Build(lines, children, -1, obj, error);
+    return Build(lines, children, -1, obj, err);
 }
 
 }  // namespace xtreaming
