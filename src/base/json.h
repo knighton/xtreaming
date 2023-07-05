@@ -2,10 +2,12 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "third_party/json/json.hpp"
 
 using std::string;
+using std::vector;
 
 namespace xtreaming {
 
@@ -35,11 +37,24 @@ bool GetUInt32(const json& obj, const string& key, uint32_t def, uint32_t* ret, 
 bool GetUInt32(const json& obj, const json& bak, const string& key, uint32_t def, uint32_t* ret,
                string* err);
 
+// Get double.
+bool GetDouble(const json& obj, const string& key, double* ret, string* err);
+bool GetDouble(const json& obj, const string& key, double def, double* ret, string* err);
+bool GetDouble(const json& obj, const json& bak, const string& key, double def, double* ret,
+               string* err);
+
 // Get string.
-bool GetString(const json& obj, const string& key, string *ret, string* err);
+bool GetString(const json& obj, const string& key, string* ret, string* err);
 bool GetString(const json& obj, const string& key, const string& def, string* ret, string* err);
 bool GetString(const json& obj, const json& bak, const string& key, const string& def, string* ret,
                string* err);
+
+// Get strings.
+bool GetStrings(const json& obj, const string& key, vector<string>* ret, string* err);
+bool GetStrings(const json& obj, const string& key, const vector<string>& def, vector<string>* ret,
+                string* err);
+bool GetStrings(const json& obj, const json& bak, const string& key, const vector<string>& def,
+                vector<string>* ret, string* err);
 
 // Get object.
 bool GetObject(const json& obj, const string& key, const json** ret, string* err);

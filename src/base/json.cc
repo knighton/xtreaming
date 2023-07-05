@@ -111,6 +111,38 @@ bool GetUInt32(const json& obj, const json& bak, const string& key, uint32_t def
     }
 }
 
+bool GetDouble(const json& obj, const string& key, double* ret, string* err) {
+    auto& val = obj[key];
+    if (val.is_number()) {
+        *ret = val;
+        return true;
+    } else {
+        *err = StringPrintf("`%s` must be an int64.", key.c_str());
+        return false;
+    }
+}
+
+bool GetDouble(const json& obj, const string& key, double def, double* ret, string *err) {
+    if (Contains(obj, key)) {
+        return GetDouble(obj, key, ret, err);
+    } else {
+        *ret = def;
+        return true;
+    }
+}
+
+bool GetDouble(const json& obj, const json& bak, const string& key, double def, double* ret,
+               string* err) {
+    if (Contains(obj, key)) {
+        return GetDouble(obj, key, ret, err);
+    } else if (Contains(bak, key)) {
+        return GetDouble(bak, key, ret, err);
+    } else {
+        *ret = def;
+        return true;
+    }
+}
+
 bool GetString(const json& obj, const string& key, string* ret, string* err) {
     auto& val = obj[key];
     if (val.is_string()) {
@@ -137,6 +169,48 @@ bool GetString(const json& obj, const json& bak, const string& key, const string
         return GetString(obj, key, ret, err);
     } else if (Contains(bak, key)) {
         return GetString(bak, key, ret, err);
+    } else {
+        *ret = def;
+        return true;
+    }
+}
+
+bool GetStrings(const json& obj, const string& key, vector<string>* ret, string* err) {
+    auto& val = obj[key];
+    if (val.is_array()) {
+        ret->clear();
+        ret->reserve(val.size());
+        for (auto& sub : val) {
+            if (sub.is_string()) {
+                ret->emplace_back(sub);
+            } else {
+                *err = StringPrintf("`%s` must be an array of strings.", key.c_str());
+                return false;
+            }
+        }
+        return true;
+    } else {
+        *err = StringPrintf("`%s` must be an array of strings.", key.c_str());
+        return false;
+    }
+}
+
+bool GetStrings(const json& obj, const string& key, const vector<string>& def, vector<string>* ret,
+                string* err) {
+    if (Contains(obj, key)) {
+        return GetStrings(obj, key, ret, err);
+    } else {
+        *ret = def;
+        return true;
+    }
+}
+
+bool GetStrings(const json& obj, const json& bak, const string& key, const vector<string>& def,
+                vector<string>* ret, string* err) {
+    if (Contains(obj, key)) {
+        return GetStrings(obj, key, ret, err);
+    } else if (Contains(bak, key)) {
+        return GetStrings(bak, key, ret, err);
     } else {
         *ret = def;
         return true;
