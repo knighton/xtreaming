@@ -5,8 +5,9 @@ stream:
   split: null
   download_retry: 3
   download_timeout: 60s
-  hashes: null
+  hash_algos: null
   non_hashed_ok: true
+  keep_zip: false
 streams:
   c4:
     remote: oci://path/to/c4
