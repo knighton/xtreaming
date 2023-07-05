@@ -93,6 +93,16 @@ bool ParseInt(const string& text, int64_t* ret) {
     return true;
 }
 
+bool ParseInt(const string& text, double* ret) {
+    int64_t i64;
+    if (!ParseInt(text, &i64)) {
+        return false;
+    }
+
+    *ret = (double)i64;
+    return true;
+}
+
 bool ParseFloat(const string& text, double* ret) {
     if (text.empty()) {
         return false;
@@ -208,6 +218,23 @@ bool ParseCountUnit(char chr, int64_t* unit) {
     return true;
 }
 
+bool ParseTimeUnit(const string& txt, double* unit) {
+    if (txt == "ms") {
+        *unit = 0.001;
+    } else if (txt == "s" || txt == "sec") {
+        *unit = 1;
+    } else if (txt == "m" || txt == "min") {
+        *unit = 60;
+    } else if (txt == "h" || txt == "hr") {
+        *unit = 60 * 60;
+    } else if (txt == "d" || txt == "day") {
+        *unit = 24 * 60 * 60;
+    } else {
+        return false;
+    }
+    return true;
+}
+
 }  // namespace
 
 bool ParseBytes(const string& txt, int64_t* ret, string* err) {
@@ -271,9 +298,97 @@ bool ParseCount(const string& txt, int64_t* ret, string* err) {
 }
 
 bool ParseTime(const string& txt, double* ret, string* err) {
+    // String must start with a digit.
+    if (txt.empty() || txt[0] < '0' || '9' < txt[0]) {
+        *err = StringPrintf("Invalid time string: `%s`.", txt.c_str());
+        return false;
+    }
+
+    // String alternates between numbers and units.
+    bool in_number = true;
+    int begin = 0;
+    vector<string> numbers;
+    vector<string> units;
+    for (int i = 0; i < txt.size(); ++i) {
+        auto& chr = txt[i];
+        if (in_number) {
+            if (chr == '.' || ('0' <= chr && chr <= '9')) {
+                ;
+            } else if ('a' <= chr && chr <= 'z') {
+                in_number = false;
+                auto number = txt.substr(begin, i - begin);
+                numbers.emplace_back(number);
+                begin = i;
+            } else {
+                *err = StringPrintf("Unexpected character in time string (%c): `%s`.", chr,
+                                    txt.c_str());
+                return false;
+            }
+        } else {
+            if (chr == '.' || ('0' <= chr && chr <= '9')) {
+                in_number = true;
+                auto unit = txt.substr(begin, i - begin);
+                units.emplace_back(unit);
+                begin = i;
+            } else if ('a' <= chr && chr <= 'z') {
+                ;
+            } else {
+                *err = StringPrintf("Unexpected character in time string (%c): `%s`.", chr,
+                                    txt.c_str());
+                return false;
+            }
+        }
+    }
+
+    // Catch the last substring.
+    if (in_number) {
+        auto number = txt.substr(begin);
+        numbers.emplace_back(number);
+    } else {
+        auto unit = txt.substr(begin);
+        units.emplace_back(unit);
+    }
+
+    // Each number must be accompanied by a unit.
+    if (numbers.size() != units.size()) {
+        *err = StringPrintf("Invalid time string: `%s`.", txt.c_str());
+        return false;
+    }
+
+    // Parse each number. They must be ints except for the last number.
+    vector<double> values;
+    values.resize(numbers.size());
+    for (int i = 0; i < numbers.size(); ++i) {
+        auto& num = numbers[i];
+        auto& f64 = values[i];
+        if (i < numbers.size() - 1) {
+            if (!ParseInt(num, &f64)) {
+                return false;
+            }
+        } else {
+            if (!ParseFloat(num, &f64)) {
+                return false;
+            }
+        }
+    }
+
+    // Parse each unit into a multiplier.
+    vector<double> muls;
+    muls.resize(units.size());
+    for (int i = 0; i < units.size(); ++i) {
+        auto& unit = units[i];
+        auto& mul = muls[i];
+        if (!ParseTimeUnit(unit, &mul)) {
+            return false;
+        }
+    }
+
+    // Sum the pairs of values and units.
     *ret = 0;
-    *err = "Parsing times is not supported yet.";
-    return false;  // TODO
+    for (int i = 0; i < muls.size(); ++i) {
+        *ret += values[i] * muls[i];
+    }
+    return true;
 }
 
 void SplitString(const string& text, char delim, vector<string>* parts) {
