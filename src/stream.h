@@ -41,6 +41,8 @@ class Stream {
 
     bool Init(const json& base, const json& obj, string* error);
 
+    static bool CrossCheckWeights(const vector<Stream>& streams, string* err);
+
   private:
     // Paths.
 

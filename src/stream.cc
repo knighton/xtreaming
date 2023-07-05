@@ -97,4 +97,21 @@ bool Stream::Init(const json& obj, const json& bak, string* err) {
     return true;
 }
 
+bool Stream::CrossCheckWeights(const vector<Stream>& streams, string* err) {
+    int num_relative = 0;
+    for (auto& stream : streams) {
+        num_relative += (0 <= stream.proportion());
+    }
+
+    if (!num_relative) {
+        return true;
+    } else if (num_relative == streams.size()) {
+        return true;
+    } else {
+        *err = "Attempted to mix absolute (`repeat`, `choose`, or no weight) and relative "
+            "(`proportion`) stream weighting schemes. They must be all one or the other.";
+        return false;
+    }
+}
+
 }  // namespace xtreaming

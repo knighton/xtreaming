@@ -3,7 +3,7 @@ CXX = clang++
 FLAGS = \
     -std=c++17 \
     -O3 \
-    -Isrc/
+    -Isrc/ \
     -Isrc/third_party/zstd/ \
     -Wpedantic \
     -Wall \

@@ -42,6 +42,11 @@ bool Dataset::Init(const json& obj, string* err) {
         }
     }
 
+    // Cross-check stream weighting scheme.
+    if (!Stream::CrossCheckWeights(streams_, err)) {
+        return false;
+    }
+
     return true;
 }
 

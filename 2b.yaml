@@ -54,17 +54,17 @@ streams:
 shard_index:
   slot_size: 1024
 sampler:
-  algo: c:m2
+  algo: m2
   seed: 1337
   epoch_size: 2b
   strategy: balanced
 determiner:
-  algo: d:orig
+  algo: orig
   canonical_nodes: 64
   batch_size: 4
 shuffle: true
 shuffler:
-  algo: s:s1br
+  algo: s1br
   seed: 1337
   block_size: 1m
 downloader:
