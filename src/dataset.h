@@ -5,6 +5,7 @@
 
 #include "base/json.h"
 #include "base/spanner.h"
+#include "serial/base/shard.h"
 #include "stream.h"
 
 using std::string;
@@ -18,6 +19,8 @@ class Dataset {
 
   private:
     vector<Stream> streams_;
+    vector<Shard*> shards_;
+    Spanner shard_index_;
 };
 
 }  // namespace xtreaming
