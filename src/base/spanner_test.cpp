@@ -7,8 +7,8 @@ using namespace xtreaming;
 int main() {
     Spanner spanner;
     vector<int64_t> span_sizes = {1, 2, 3, 10, 4};
-    int64_t slot_size = 3;
-    spanner.Init(span_sizes, slot_size);
+    int64_t bucket_size = 3;
+    spanner.Init(span_sizes, bucket_size);
 
     int64_t item_id = 0;
     for (int64_t span_id = 0; span_id < span_sizes.size(); ++span_id) {
