@@ -6,71 +6,179 @@
 
 namespace xtreaming {
 
-bool GetBool(const json& obj, const string& key, bool def, bool* ret, string* err) {
-    if (!obj.contains(key)) {
-        *ret = def;
-        return true;
-    }
+bool Contains(const json& obj, const string& key) {
+    return obj.contains(key) && !obj[key].is_null();
+}
 
+bool GetBool(const json& obj, const string& key, bool* ret, string* err) {
     auto& val = obj[key];
-    if (val.is_null()) {
-        *ret = def;
-        return true;
-    } else if (val.is_boolean()) {
+    if (val.is_boolean()) {
         *ret = val;
         return true;
     } else {
-        *err = StringPrintf("`%s` must be a boolean.", key.c_str());
+        *err = StringPrintf("`%s` must be a bool.", key.c_str());
         return false;
     }
 }
 
-bool GetInt64(const json& obj, const string& key, int64_t def, int64_t* ret, string* err) {
-    if (!obj.contains(key)) {
+bool GetBool(const json& obj, const string& key, bool def, bool* ret, string *err) {
+    if (Contains(obj, key)) {
+        return GetBool(obj, key, ret, err);
+    } else {
         *ret = def;
         return true;
     }
+}
 
-    auto& val = obj[key];
-    if (val.is_null()) {
+bool GetBool(const json& obj, const json& bak, const string& key, bool def, bool* ret,
+             string* err) {
+    if (Contains(obj, key)) {
+        return GetBool(obj, key, ret, err);
+    } else if (Contains(bak, key)) {
+        return GetBool(bak, key, ret, err);
+    } else {
         *ret = def;
         return true;
-    } else if (val.is_number_integer()) {
+    }
+}
+
+bool GetInt64(const json& obj, const string& key, int64_t* ret, string* err) {
+    auto& val = obj[key];
+    if (val.is_number_integer()) {
         *ret = val;
         return true;
     } else {
-        *err = StringPrintf("`%s` must be an integer.", key.c_str());
+        *err = StringPrintf("`%s` must be an int64.", key.c_str());
         return false;
     }
 }
 
-bool GetUInt32(const json& obj, const string& key, uint32_t def, uint32_t* ret, string* err) {
-    int64_t i64;
-    if (!GetInt64(obj, "sampling_seed", 1337, &i64, err)) {
+bool GetInt64(const json& obj, const string& key, int64_t def, int64_t* ret, string *err) {
+    if (Contains(obj, key)) {
+        return GetInt64(obj, key, ret, err);
+    } else {
         *ret = def;
         return true;
     }
-
-    if (i64 < 0 || UINT32_MAX < i64) {
-        *err = StringPrintf("`%s` is out of range (must fit in uint32_t).", key.c_str());
-        return false;
-    }
-
-    *ret = (uint32_t)i64;
-    return true;
 }
 
-bool GetBytes(const json& obj, const string& key, int64_t def, int64_t* ret, string* err) {
-    if (!obj.contains(key)) {
+bool GetInt64(const json& obj, const json& bak, const string& key, int64_t def, int64_t* ret,
+              string* err) {
+    if (Contains(obj, key)) {
+        return GetInt64(obj, key, ret, err);
+    } else if (Contains(bak, key)) {
+        return GetInt64(bak, key, ret, err);
+    } else {
         *ret = def;
         return true;
     }
+}
 
+bool GetUInt32(const json& obj, const string& key, uint32_t* ret, string* err) {
     auto& val = obj[key];
-    if (val.is_null()) {
+    if (val.is_number_integer()) {
+        int64_t i64 = val;
+        if (i64 < 0 || UINT32_MAX < i64) {
+            *err = StringPrintf("`%s` is out of range (must fit in uint32_t).", key.c_str());
+            return false;
+        }
+        *ret = (uint32_t)i64;
+        return true;
+    } else {
+        *err = StringPrintf("`%s` must be an int64.", key.c_str());
+        return false;
+    }
+}
+
+bool GetUInt32(const json& obj, const string& key, uint32_t def, uint32_t* ret, string *err) {
+    if (Contains(obj, key)) {
+        return GetUInt32(obj, key, ret, err);
+    } else {
         *ret = def;
         return true;
-    } else if (val.is_number_integer()) {
+    }
+}
+
+bool GetUInt32(const json& obj, const json& bak, const string& key, uint32_t def, uint32_t* ret,
+               string* err) {
+    if (Contains(obj, key)) {
+        return GetUInt32(obj, key, ret, err);
+    } else if (Contains(bak, key)) {
+        return GetUInt32(bak, key, ret, err);
+    } else {
+        *ret = def;
+        return true;
+    }
+}
+
+bool GetString(const json& obj, const string& key, string* ret, string* err) {
+    auto& val = obj[key];
+    if (val.is_string()) {
+        *ret = val;
+        return true;
+    } else {
+        *err = StringPrintf("`%s` must be a string.", key.c_str());
+        return false;
+    }
+}
+
+bool GetString(const json& obj, const string& key, const string& def, string* ret, string* err) {
+    if (Contains(obj, key)) {
+        return GetString(obj, key, ret, err);
+    } else {
+        *ret = def;
+        return true;
+    }
+}
+
+bool GetString(const json& obj, const json& bak, const string& key, const string& def, string* ret,
+               string* err) {
+    if (Contains(obj, key)) {
+        return GetString(obj, key, ret, err);
+    } else if (Contains(bak, key)) {
+        return GetString(bak, key, ret, err);
+    } else {
+        *ret = def;
+        return true;
+    }
+}
+
+bool GetObject(const json& obj, const string& key, const json** ret, string* err) {
+    auto& val = obj[key];
+    if (val.is_object()) {
+        *ret = &val;
+        return true;
+    } else {
+        *err = StringPrintf("`%s` must be an object.", key.c_str());
+        return false;
+    }
+}
+
+bool GetObject(const json& obj, const string& key, const json* def, const json** ret,
+               string* err) {
+    if (Contains(obj, key)) {
+        return GetObject(obj, key, ret, err);
+    } else {
+        *ret = def;
+        return true;
+    }
+}
+
+bool GetObject(const json& obj, const json& bak, const string& key, const json* def,
+               const json** ret, string* err) {
+    if (Contains(obj, key)) {
+        return GetObject(obj, key, ret, err);
+    } else if (Contains(bak, key)) {
+        return GetObject(bak, key, ret, err);
+    } else {
+        *ret = def;
+        return true;
+    }
+}
+
+bool GetBytes(const json& obj, const string& key, int64_t* ret, string* err) {
+    auto& val = obj[key];
+    if (val.is_number_integer()) {
         *ret = val;
         return true;
     } else if (val.is_string()) {
@@ -80,47 +188,105 @@ bool GetBytes(const json& obj, const string& key, int64_t def, int64_t* ret, str
         }
         return ParseBytes(val, ret, err);
     } else {
-        *err = StringPrintf("`%s` must be either an integer or a bytes string.", key.c_str());
+        *err = StringPrintf("`%s` must be a number of bytes (eg, `7` or `7kb`).", key.c_str());
         return false;
     }
 }
 
-bool GetString(const json& obj, const string& key, const string& def, string* ret, string* err) {
-    if (!obj.contains(key)) {
+bool GetBytes(const json& obj, const string& key, int64_t def, int64_t* ret, string* err) {
+    if (Contains(obj, key)) {
+        return GetBytes(obj, key, ret, err);
+    } else {
         *ret = def;
         return true;
     }
-    
-    auto& val = obj[key];
-    if (val.is_null()) {
+}
+
+bool GetBytes(const json& obj, const json& bak, const string& key, int64_t def, int64_t* ret,
+              string* err) {
+    if (Contains(obj, key)) {
+        return GetBytes(obj, key, ret, err);
+    } else if (Contains(bak, key)) {
+        return GetBytes(bak, key, ret, err);
+    } else {
         *ret = def;
         return true;
-    } else if (val.is_string()) {
+    }
+}
+
+bool GetCount(const json& obj, const string& key, int64_t* ret, string* err) {
+    auto& val = obj[key];
+    if (val.is_number_integer()) {
         *ret = val;
         return true;
+    } else if (val.is_string()) {
+        if (val.empty()) {
+            *err = StringPrintf("Count string `%s` is empty.", key.c_str());
+            return false;
+        }
+        return ParseCount(val, ret, err);
     } else {
-        *err = StringPrintf("`%s` must be a string.", key.c_str());
+        *err = StringPrintf("`%s` must be a number of items (eg, `7` or `7k`).", key.c_str());
         return false;
     }
 }
 
-bool GetObject(const json& obj, const string& key, const json* def, const json** ret,
-               string* err) {
-    if (!obj.contains(key)) {
+bool GetCount(const json& obj, const string& key, int64_t def, int64_t* ret, string* err) {
+    if (Contains(obj, key)) {
+        return GetCount(obj, key, ret, err);
+    } else {
         *ret = def;
         return true;
     }
+}
 
-    auto& val = obj[key];
-    if (val.is_null()) {
+bool GetCount(const json& obj, const json& bak, const string& key, int64_t def, int64_t* ret,
+              string* err) {
+    if (Contains(obj, key)) {
+        return GetCount(obj, key, ret, err);
+    } else if (Contains(bak, key)) {
+        return GetCount(bak, key, ret, err);
+    } else {
         *ret = def;
         return true;
-    } else if (val.is_object()) {
-        *ret = &val;
+    }
+}
+
+bool GetTime(const json& obj, const string& key, double* ret, string* err) {
+    auto& val = obj[key];
+    if (val.is_number()) {
+        *ret = val;
         return true;
+    } else if (val.is_string()) {
+        if (val.empty()) {
+            *err = StringPrintf("Time string `%s` is empty.", key.c_str());
+            return false;
+        }
+        return ParseTime(val, ret, err);
     } else {
-        *err = StringPrintf("`%s` must be an object.", key.c_str());
+        *err = StringPrintf("`%s` must be an interval of time (eg, `7.0` or `7.0s`).", key.c_str());
         return false;
+    }
+}
+
+bool GetTime(const json& obj, const string& key, double def, double* ret, string* err) {
+    if (Contains(obj, key)) {
+        return GetTime(obj, key, ret, err);
+    } else {
+        *ret = def;
+        return true;
+    }
+}
+
+bool GetTime(const json& obj, const json& bak, const string& key, double def, double* ret,
+             string* err) {
+    if (Contains(obj, key)) {
+        return GetTime(obj, key, ret, err);
+    } else if (Contains(bak, key)) {
+        return GetTime(bak, key, ret, err);
+    } else {
+        *ret = def;
+        return true;
     }
 }
 
