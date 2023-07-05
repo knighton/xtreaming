@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "base/json.h"
+#include "base/spanner.h"
 #include "stream.h"
 
 using std::string;
@@ -13,7 +14,7 @@ namespace xtreaming {
 
 class Dataset {
   public:
-    bool Init(const json& obj, string* error);
+    bool Init(const json& obj, string* err);
 
   private:
     vector<Stream> streams_;

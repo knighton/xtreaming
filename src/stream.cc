@@ -11,7 +11,7 @@ string DeriveLocal(const string& remote, const string& split) {
 
 }  // namespace
 
-bool Stream::Init(const json& obj, const json& bak, string* err) {
+bool Stream::Init(const json& obj, const json& all, string* err) {
     // Init paths:
 
     if (!GetString(obj, "remote", "", &remote_, err)) {
@@ -35,9 +35,13 @@ bool Stream::Init(const json& obj, const json& bak, string* err) {
         local_ = DeriveLocal(remote_, split_);
     }
 
+    if (!GetString(obj, "index", "", &index_, err)) {
+        return false;
+    }
+
     // Init behavior:
 
-    if (!GetInt64(obj, bak, "download_retry", 3, &download_retry_, err)) {
+    if (!GetInt64(obj, all, "download_retry", 3, &download_retry_, err)) {
         return false;
     }
     if (download_retry_ < 0) {
@@ -45,7 +49,7 @@ bool Stream::Init(const json& obj, const json& bak, string* err) {
         return false;
     }
 
-    if (!GetTime(obj, bak, "download_timeout", 60.0, &download_timeout_, err)) {
+    if (!GetTime(obj, all, "download_timeout", 60.0, &download_timeout_, err)) {
         return false;
     }
     if (download_timeout_ <= 0) {
@@ -53,15 +57,15 @@ bool Stream::Init(const json& obj, const json& bak, string* err) {
         return false;
     }
 
-    if (!GetStrings(obj, bak, "hash_algos", {}, &hash_algos_, err)) {
+    if (!GetStrings(obj, all, "hash_algos", {}, &hash_algos_, err)) {
         return false;
     }
 
-    if (!GetBool(obj, bak, "non_hashed_ok", true, &non_hashed_ok_, err)) {
+    if (!GetBool(obj, all, "non_hashed_ok", true, &non_hashed_ok_, err)) {
         return false;
     }
 
-    if (!GetBool(obj, bak, "keep_zip", false, &keep_zip_, err)) {
+    if (!GetBool(obj, all, "keep_zip", false, &keep_zip_, err)) {
         return false;
     }
 

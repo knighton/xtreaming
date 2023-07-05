@@ -39,8 +39,10 @@ class Stream {
     void set_sample_offset(int64_t sample_offset) { sample_offset_ = sample_offset; }
     void set_num_samples(int64_t num_samples) { num_samples_ = num_samples; }
 
-    bool Init(const json& base, const json& obj, string* error);
+    // Initialize from its config and a backup config shared by all streams.
+    bool Init(const json& obj, const json& all, string* err);
 
+    // Verify that all streams are weighted either in absolute terms or relatively.
     static bool CrossCheckWeights(const vector<Stream>& streams, string* err);
 
   private:
@@ -53,18 +55,14 @@ class Stream {
 
     string local_;  // Local filesystem path where the dataset will be cached on the node.
                     //
-                    // If empty, we use a hash of the remote path as the local path and remote must
-                    // exist.
+                    // If empty, we use a hash of remote and split as the local path and remote
+                    // must exist.
 
     string split_;  // Appends this subdir to `remote` and `local` paths.
-                    //
-                    // If not given, its value is taken from StreamingDataset defaults. If given
-                    // but null, is set to empty.
 
     string index_;  // Relative path to the index file.
                     //
-                    // If not given, its value is taken from StreamingDataset defaults. If given
-                    // but null, is set to empty. If empty, we use `index.json`.
+                    // If empty, we use `index.json`.
 
     // Behavior.
     //

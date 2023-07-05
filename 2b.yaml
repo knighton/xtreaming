@@ -3,6 +3,7 @@ stream:
   remote: null
   local: null
   split: null
+  index: null
   download_retry: 3
   download_timeout: 60s
   hash_algos: null
@@ -52,7 +53,7 @@ streams:
     local: /dataset/mds/stack
     proportion: 0.1
 shard_index:
-  slot_size: 1024
+  bucket_size: 1024
 sampler:
   algo: m2
   seed: 1337

@@ -3,17 +3,17 @@
 namespace xtreaming {
 
 bool Dataset::Init(const json& obj, string* err) {
-    json empty;
+    json empty_obj;
 
     // Get `stream`.
     const json* all;
-    if (!GetObject(obj, "stream", &empty, &all, err)) {
+    if (!GetObject(obj, "stream", &empty_obj, &all, err)) {
         return false;
     }
 
     // Get `streams`.
     const json* streams;
-    if (!GetObject(obj, "streams", &empty, &streams, err)) {
+    if (!GetObject(obj, "streams", &empty_obj, &streams, err)) {
         return false;
     }
 
