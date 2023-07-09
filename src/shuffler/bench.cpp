@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "base/json.h"
+#include "base/time.h"
 #include "shuffler/all.h"
 #include "shuffler/shuffler.h"
 
@@ -41,9 +42,9 @@ int main() {
     int64_t max_shard_size = 10000;
 
     int64_t pow_min = 10;
-    int64_t pow_max = 20;
+    int64_t pow_max = 30;
     int64_t pow_step = 4;
-    double timeout = 10.0;
+    int64_t timeout = 10L * 1000 * 1000 * 1000;
 
     vector<json> objs = {
         {
@@ -83,6 +84,7 @@ int main() {
         shufflers.emplace_back(shuffler);
     }
 
+    printf("algo dataset_size num_shards shuffle_time\n");
     for (auto& shuffler : shufflers) {
         for (int64_t i = pow_min * pow_step; i <= pow_max * pow_step; ++i) {
             double exponent = (double)i / (double)pow_step;
@@ -90,7 +92,15 @@ int main() {
             vector<int64_t> shard_sizes;
             GetShardSizes(dataset_size, min_shard_size, max_shard_size, &shard_sizes);
             vector<int64_t> sample_ids;
+            auto t0 = NanoTime();
             shuffler->Shuffle(shard_sizes, num_nodes, epoch, &sample_ids);
+            auto t1 = NanoTime();
+            auto t = t1 - t0;
+            printf("%s %ld %ld %8.6f\n", shuffler->algo().c_str(), dataset_size,
+                   shard_sizes.size(), (double)t / 1e9);
+            if (timeout <= t) {
+                break;
+            }
         }
     }
 }

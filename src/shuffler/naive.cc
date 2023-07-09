@@ -12,6 +12,7 @@ using std::shuffle;
 namespace xtreaming {
 
 bool Naive::Init(const json& obj, string* err) {
+    algo_ = "naive";
     return Shuffler::Init(obj, err);
 }
 

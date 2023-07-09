@@ -15,6 +15,7 @@ class Shuffler {
   public:
     virtual ~Shuffler();
 
+    const string& algo() const { return algo_; }
     uint32_t seed() const { return seed_; }
 
     virtual bool Init(const json& obj, string *err);
@@ -23,6 +24,7 @@ class Shuffler {
                          vector<int64_t>* ids) = 0;
 
   protected:
+    string algo_;
     uint32_t seed_;
 };
 

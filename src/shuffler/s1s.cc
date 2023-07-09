@@ -3,6 +3,8 @@
 namespace xtreaming {
 
 bool S1S::Init(const json& obj, string* err) {
+    algo_ = "s1s";
+
     return S1::Init(obj, err);
 }
 

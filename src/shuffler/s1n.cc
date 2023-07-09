@@ -9,6 +9,8 @@ using std::min;
 namespace xtreaming {
 
 bool S1N::Init(const json& obj, string* err) {
+    algo_ = "s1n";
+
     return S1::Init(obj, err);
 }
 

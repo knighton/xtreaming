@@ -10,6 +10,8 @@ using std::uniform_int_distribution;
 namespace xtreaming {
 
 bool S1BR::Init(const json& obj, string* err) {
+    algo_ = "s1br";
+
     if (!S1::Init(obj, err)) {
         return false;
     }
