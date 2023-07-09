@@ -85,7 +85,7 @@ bool GetUInt32(const json& obj, const string& key, uint32_t* ret, string* err) {
         *ret = (uint32_t)i64;
         return true;
     } else {
-        *err = StringPrintf("`%s` must be an int64.", key.c_str());
+        *err = StringPrintf("`%s` must be a uint32.", key.c_str());
         return false;
     }
 }
@@ -117,7 +117,7 @@ bool GetDouble(const json& obj, const string& key, double* ret, string* err) {
         *ret = val;
         return true;
     } else {
-        *err = StringPrintf("`%s` must be an int64.", key.c_str());
+        *err = StringPrintf("`%s` must be a double.", key.c_str());
         return false;
     }
 }
