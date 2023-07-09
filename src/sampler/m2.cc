@@ -15,6 +15,16 @@ bool M2::Init(const json& obj, string* err) {
     return Sampler::Init(obj, err);
 }
 
+M2* M2::New(const json& obj, string* err) {
+    auto ret = new M2;
+    if (!ret->Init(obj, err)) {
+        delete ret;
+        return nullptr;
+    }
+
+    return ret;
+}
+
 namespace {
 
 void FixShortfall(int64_t target, default_random_engine* rng, vector<int64_t>* values) {
