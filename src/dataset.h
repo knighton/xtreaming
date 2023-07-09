@@ -6,6 +6,8 @@
 #include "base/json.h"
 #include "base/spanner.h"
 #include "serial/base/shard.h"
+#include "sampler/sampler.h"
+#include "shuffler/shuffler.h"
 #include "stream.h"
 
 using std::string;
@@ -21,6 +23,9 @@ class Dataset {
     vector<Stream> streams_;
     vector<Shard*> shards_;
     Spanner shard_index_;
+    Sampler* sampler_;
+    bool shuffle_;
+    Shuffler* shuffler_;
 };
 
 }  // namespace xtreaming

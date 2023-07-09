@@ -3,7 +3,9 @@
 #include <thread>
 
 #include "base/string.h"
+#include "sampler/all.h"
 #include "serial/index.h"
+#include "shuffler/all.h"
 
 using std::thread;
 
@@ -11,24 +13,45 @@ namespace xtreaming {
 
 bool Dataset::Init(const json& obj, string* err) {
     json empty_obj;
+    const json* section;
 
-    // Get shard index samples per bucket.
+    // Get indexing arguments.
     int64_t shard_index_bucket_size;
     {
-        const json* shard_index_obj;
-        if (!GetObject(obj, "shard_index", &empty_obj, &shard_index_obj, err)) {
+        if (!GetObject(obj, "shard_index", &empty_obj, &section, err)) {
             return false;
         }
 
-        if (!GetInt64(*shard_index_obj, "bucket_size", 1024, &shard_index_bucket_size, err)) {
+        if (!GetInt64(*section, "bucket_size", 1024, &shard_index_bucket_size, err)) {
             return false;
         }
 
         if (shard_index_bucket_size < 1) {
-            *err = StringPrintf("`shard_index.bucket_size` must be postive, but got: %ld.",
+            *err = StringPrintf("`index.bucket_size` must be postive, but got: %ld.",
                                 shard_index_bucket_size);
             return false;
         }
+    }
+
+    // Init sampling.
+    if (!GetObject(obj, "sampler", &empty_obj, &section, err)) {
+        return false;
+    }
+    sampler_ = GetSampler(*section, err);
+    if (!sampler_) {
+        return false;
+    }
+
+    // Init shuffling.
+    if (!GetBool(obj, "shuffle", false, &shuffle_, err)) {
+        return false;
+    }
+    if (!GetObject(obj, "shuffler", &empty_obj, &section, err)) {
+        return false;
+    }
+    shuffler_ = GetShuffler(*section, err);
+    if (!shuffler_) {
+        return false;
     }
 
     // Get `stream`.
