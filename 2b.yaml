@@ -52,7 +52,7 @@ streams:
     remote: oci://path/to/stack
     local: /dataset/mds/stack
     proportion: 0.1
-shard_index:
+index:
   bucket_size: 1024
 sampler:
   algo: m2
@@ -60,7 +60,7 @@ sampler:
   epoch_size: 2b
   strategy: balanced
 determiner:
-  algo: orig
+  algo: fast
   canonical_nodes: 64
   batch_size: 4
 shuffle: true
@@ -71,4 +71,6 @@ shuffler:
 downloader:
   prefetch: 1024
   concurrency: 64
-  cache_limit: 100gb
+cache:
+  disk: null
+  memory: null
