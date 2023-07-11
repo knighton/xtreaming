@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "base/json.h"
+#include "serial/base/shard.h"
 
 using std::string;
 using std::vector;
@@ -48,6 +49,9 @@ class Stream {
     // Drive how the streams are sampled given stream weights and underlying sizes.
     static bool DeriveSampling(vector<Stream>* streams, bool relative, uint32_t seed,
                                int64_t* epoch_size, string* err);
+
+    // Scan my local dir, normalizing files and gathering which shards are present.
+    void InitLocalDir(const vector<Shard*> shards, vector<bool>* is_present) const;
 
   private:
     // Sampling derivations.

@@ -24,4 +24,8 @@ void Shard::Init(int64_t stream_id, const set<string>& hash_algos, int64_t num_s
     zip_algo_ = zip_algo;
 }
 
+bool Shard::InitLocalDir(const string& local, const string& split, set<string>& files) const {
+    return false;  // TODO
+}
+
 }  // namespace xtreaming

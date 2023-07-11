@@ -1,7 +1,9 @@
 #include "stream.h"
 
 #include <algorithm>
+#include <filesystem>
 #include <random>
+#include <set>
 
 #include "base/hash/xxhash.h"
 #include "base/string.h"
@@ -234,6 +236,19 @@ bool Stream::DeriveSampling(vector<Stream>* streams, bool relative, uint32_t see
         return DeriveSamplingRelatively(streams, seed, epoch_size, err);
     } else {
         return DeriveSamplingAbsolutely(streams, epoch_size, err);
+    }
+}
+
+void Stream::InitLocalDir(const vector<Shard*> shards, vector<bool>* is_present) const {
+    string dir = local_ + "/" + split_;
+    set<string> files;
+    for (auto& entry : std::filesystem::recursive_directory_iterator(dir)) {
+        files.insert(entry.path());
+    }
+
+    for (int64_t i = shard_offset_; i < shard_offset_ + num_shards_; ++i) {
+        auto& shard = shards[i];
+        (*is_present)[i] = shard->InitLocalDir(local_, split_, files);
     }
 }
 

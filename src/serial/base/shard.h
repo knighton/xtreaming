@@ -39,6 +39,8 @@ class Shard {
     void Init(int64_t stream_id, const set<string>& hash_algos, int64_t num_samples,
               int64_t size_limit, const string& zip_algo);
 
+    bool InitLocalDir(const string& local, const string& split, set<string>& files) const;
+
   protected:
     int64_t stream_id_{-1L};      // ID of the stream this shard is from.
     int64_t sample_offset_{-1L};  // Offset of this shard in the global sample ID space.
