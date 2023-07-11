@@ -57,7 +57,7 @@ void M2::Sample(const vector<Stream>& streams, const vector<Shard*>& shards, int
     shuffle_units->clear();
     fake_to_real->clear();
 
-    // Get seed (different each epoch if balanced, same each epoch if fixed sampling). 
+    // Get seed (different each epoch if balanced, same each epoch if fixed sampling).
     uint32_t seed = seed_;
     if (!fixed_) {
         seed += (uint32_t)epoch;
