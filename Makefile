@@ -4,6 +4,7 @@ FLAGS = \
     -std=c++17 \
     -O3 \
     -Isrc/ \
+    -Isrc/third_party/xtensor/ \
     -Isrc/third_party/zstd/ \
     -Wpedantic \
     -Wall \

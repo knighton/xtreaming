@@ -4,7 +4,7 @@
 #include <string>
 
 #include "base/json.h"
-#include "base/tensor.h"
+#include "base/xtensor.h"
 
 using std::string;
 
@@ -22,7 +22,7 @@ class Determiner {
 
     virtual bool Determine(int64_t num_physical_nodes, int64_t ranks_per_node,
                            int64_t workers_per_rank, int64_t epoch_size, int64_t sample_offset,
-                           Tensor* ids, string* err) = 0;
+                           xt::xarray<int64_t>* ids, string* err) = 0;
 
   protected:
     string algo_;
