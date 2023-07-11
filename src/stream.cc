@@ -90,11 +90,11 @@ bool Stream::Init(const json& obj, const json& all, string* err) {
 
     // Init weights:
 
-    if (!GetDouble(obj, "proportion", -1, &proportion_, err)) {
+    if (!GetDouble(obj, "proportion", -1L, &proportion_, err)) {
         return false;
     }
 
-    if (!GetDouble(obj, "repeat", -1, &repeat_, err)) {
+    if (!GetDouble(obj, "repeat", -1L, &repeat_, err)) {
         return false;
     }
 
