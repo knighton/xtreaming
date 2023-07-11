@@ -67,7 +67,8 @@ shuffle: true
 shuffler:
   algo: s1br
   seed: 1337
-  block_size: 1m
+  min_block_size: 500k
+  max_block_size: 2m
 downloader:
   prefetch: 1024
   concurrency: 64
