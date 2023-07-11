@@ -53,8 +53,8 @@ void Shard::Evict(const string& local, const string& split) const {
     EvictZip(local, split);
 }
 
-bool Shard::InitLocalDir(const string& local, const string& split, bool keep_zip,
-                         set<string>& files) const {
+bool Shard::CheckLocalDir(const string& local, const string& split, bool keep_zip,
+                          set<string>& files) const {
     // For raw/zip to be considered present, each raw/zip file must be present.
     int64_t raw_files_present = 0;
     int64_t zip_files_present = 0;
@@ -117,6 +117,40 @@ bool Shard::InitLocalDir(const string& local, const string& split, bool keep_zip
 
     // Now, the shard is either entirely or not at all present given keep_zip.
     return has_raw;
+}
+
+int64_t Shard::GetRawSize() const {
+    int64_t size = 0;
+    for (auto& pair : file_pairs_) {
+        size += pair.first->num_bytes;
+    }
+    return size;
+}
+
+int64_t Shard::GetZipSize() const {
+    int64_t size = 0;
+    for (auto& pair : file_pairs_) {
+        if (pair.second) {
+            size += pair.second->num_bytes;
+        }
+    }
+    return size;
+}
+
+int64_t Shard::GetMaxSize() const {
+    return GetRawSize() + GetZipSize();
+}
+
+int64_t Shard::GetPersistentSize(bool safe_keep_zip) const {
+    if (zip_algo_.empty()) {
+        return GetRawSize();
+    }
+
+    if (!safe_keep_zip) {
+        return GetRawSize();
+    }
+
+    return GetMaxSize();
 }
 
 }  // namespace xtreaming

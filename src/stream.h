@@ -51,7 +51,7 @@ class Stream {
                                int64_t* epoch_size, string* err);
 
     // Scan my local dir, normalizing files and gathering which shards are present.
-    void InitLocalDir(const vector<Shard*> shards, vector<bool>* is_present) const;
+    void CheckLocalDir(const vector<Shard*> shards, vector<bool>* is_present) const;
 
   private:
     // Sampling derivations.

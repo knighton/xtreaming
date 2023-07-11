@@ -175,10 +175,10 @@ bool Dataset::Init(const json& obj, string* err) {
     }
 
     // Scan local directories, normalizing and gathering which shards are currently present.
-    vector<bool> is_present;
-    is_present.resize(shards_.size());
+    vector<bool> is_shard_present;
+    is_shard_present.resize(shards_.size());
     for (auto& stream : streams_) {
-        stream.InitLocalDir(shards_, &is_present);
+        stream.CheckLocalDir(shards_, &is_shard_present);
     }
 
     return true;

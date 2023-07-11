@@ -240,7 +240,7 @@ bool Stream::DeriveSampling(vector<Stream>* streams, bool relative, uint32_t see
     }
 }
 
-void Stream::InitLocalDir(const vector<Shard*> shards, vector<bool>* is_present) const {
+void Stream::CheckLocalDir(const vector<Shard*> shards, vector<bool>* is_present) const {
     string dir = local_ + "/" + split_;
     set<string> files;
     for (auto& entry : fs::recursive_directory_iterator(dir)) {
@@ -249,7 +249,7 @@ void Stream::InitLocalDir(const vector<Shard*> shards, vector<bool>* is_present)
 
     for (int64_t i = shard_offset_; i < shard_offset_ + num_shards_; ++i) {
         auto& shard = shards[i];
-        (*is_present)[i] = shard->InitLocalDir(local_, split_, keep_zip_, files);
+        (*is_present)[i] = shard->CheckLocalDir(local_, split_, keep_zip_, files);
     }
 }
 
