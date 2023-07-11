@@ -60,7 +60,7 @@ bool Dataset::Init(const json& obj, string* err) {
         return false;
     }
 
-    // Init `stream` and `streams`.
+    // Init streams and their shards.
     const json* all;
     if (!GetObject(obj, "stream", &empty_obj, &all, err)) {
         return false;
@@ -94,7 +94,8 @@ bool Dataset::Init(const json& obj, string* err) {
     }
 
     // Cross-check stream weighting scheme.
-    if (!Stream::CrossCheckWeights(streams_, err)) {
+    bool relative_weights;
+    if (!Stream::CrossCheckWeights(streams_, &relative_weights, err)) {
         return false;
     }
 
@@ -164,6 +165,13 @@ bool Dataset::Init(const json& obj, string* err) {
             shard_sizes.emplace_back(size);
         }
         shard_index_.Init(shard_sizes, shard_index_bucket_size);
+    }
+
+    // Now that we have both the stream weights and the underlying sample counts, derive how they
+    // are sampled.
+    if (!Stream::DeriveSampling(relative_weights, sampler_->seed(), sampler_->mutable_epoch_size(),
+                                &streams_, err)) {
+        return false;
     }
 
     return true;

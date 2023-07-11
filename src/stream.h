@@ -43,9 +43,19 @@ class Stream {
     bool Init(const json& obj, const json& all, string* err);
 
     // Verify that all streams are weighted either in absolute terms or relatively.
-    static bool CrossCheckWeights(const vector<Stream>& streams, string* err);
+    static bool CrossCheckWeights(const vector<Stream>& streams, bool* relative, string* err);
+
+    // Drive how the streams are sampled given stream weights and underlying sizes.
+    static bool DeriveSampling(bool relative, uint32_t seed, int64_t* epoch_size,
+                               vector<Stream>* streams, string* err);
 
   private:
+    // Sampling derivations.
+    static bool DeriveSamplingRelatively(uint32_t seed, int64_t* epoch_size,
+                                         vector<Stream>* streams, string* err);
+    static bool DeriveSamplingAbsolutely(int64_t* epoch_size, vector<Stream>* streams,
+                                         string* err);
+
     // Paths.
 
     string remote_;  // Path to the remote, persistent copy of the dataset.
