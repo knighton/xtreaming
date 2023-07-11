@@ -16,11 +16,11 @@ bool S1BR::Init(const json& obj, string* err) {
         return false;
     }
 
-    if (!GetInt64(obj, "min_block_size", 1L << 19, &min_block_size_, err)) {
+    if (!GetCount(obj, "min_block_size", 1L << 19, &min_block_size_, err)) {
         return false;
     }
 
-    if (!GetInt64(obj, "max_block_size", 1L << 20, &max_block_size_, err)) {
+    if (!GetCount(obj, "max_block_size", 1L << 20, &max_block_size_, err)) {
         return false;
     }
 

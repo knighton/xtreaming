@@ -3,6 +3,7 @@
 #include <thread>
 
 #include "base/string.h"
+#include "determiner/all.h"
 #include "sampler/all.h"
 #include "serial/index.h"
 #include "shuffler/all.h"
@@ -17,20 +18,16 @@ bool Dataset::Init(const json& obj, string* err) {
 
     // Get indexing arguments.
     int64_t shard_index_bucket_size;
-    {
-        if (!GetObject(obj, "shard_index", &empty_obj, &section, err)) {
-            return false;
-        }
-
-        if (!GetInt64(*section, "bucket_size", 1024, &shard_index_bucket_size, err)) {
-            return false;
-        }
-
-        if (shard_index_bucket_size < 1) {
-            *err = StringPrintf("`index.bucket_size` must be postive, but got: %ld.",
-                                shard_index_bucket_size);
-            return false;
-        }
+    if (!GetObject(obj, "shard_index", &empty_obj, &section, err)) {
+        return false;
+    }
+    if (!GetInt64(*section, "bucket_size", 1024, &shard_index_bucket_size, err)) {
+        return false;
+    }
+    if (shard_index_bucket_size < 1) {
+        *err = StringPrintf("`index.bucket_size` must be postive, but got: %ld.",
+                            shard_index_bucket_size);
+        return false;
     }
 
     // Init sampling.
@@ -39,6 +36,15 @@ bool Dataset::Init(const json& obj, string* err) {
     }
     sampler_ = GetSampler(*section, err);
     if (!sampler_) {
+        return false;
+    }
+
+    // Init determinism.
+    if (!GetObject(obj, "determiner", &empty_obj, &section, err)) {
+        return false;
+    }
+    determiner_ = GetDeterminer(*section, err);
+    if (!determiner_) {
         return false;
     }
 
@@ -54,19 +60,15 @@ bool Dataset::Init(const json& obj, string* err) {
         return false;
     }
 
-    // Get `stream`.
+    // Init `stream` and `streams`.
     const json* all;
     if (!GetObject(obj, "stream", &empty_obj, &all, err)) {
         return false;
     }
-
-    // Get `streams`.
     const json* streams;
     if (!GetObject(obj, "streams", &empty_obj, &streams, err)) {
         return false;
     }
-
-    // Init streams from config.
     if (streams->empty()) {
         // `stream` is taken as the single stream, as `streams` is not provided.
         streams_.resize(1);

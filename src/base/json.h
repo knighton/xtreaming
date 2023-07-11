@@ -62,19 +62,19 @@ bool GetObject(const json& obj, const string& key, const json* def, const json**
 bool GetObject(const json& obj, const json& bak, const string& key, const json* def,
                const json** ret, string* err);
 
-// Get bytes.
+// Get bytes (`7`, `7kb`, `7mb`, `7gb`, `7tb`, etc).
 bool GetBytes(const json& obj, const string& key, int64_t* ret, string* err);
 bool GetBytes(const json& obj, const string& key, int64_t def, int64_t* ret, string* err);
 bool GetBytes(const json& obj, const json& bak, const string& key, int64_t def, int64_t* ret,
               string* err);
 
-// Get count.
+// Get count (`7`, `7k`, `7m`, `7b`, `7t`, etc).
 bool GetCount(const json& obj, const string& key, int64_t* ret, string* err);
 bool GetCount(const json& obj, const string& key, int64_t def, int64_t* ret, string* err);
 bool GetCount(const json& obj, const json& bak, const string& key, int64_t def, int64_t* ret,
               string* err);
 
-// Get time.
+// Get time (`7`, `7s`, `7m`, `7m7s`, etc).
 bool GetTime(const json& obj, const string& key, double* ret, string* err);
 bool GetTime(const json& obj, const string& key, double def, double* ret, string* err);
 bool GetTime(const json& obj, const json& bak, const string& key, double def, double* ret,

@@ -5,6 +5,7 @@
 
 #include "base/json.h"
 #include "base/spanner.h"
+#include "determiner/determiner.h"
 #include "serial/base/shard.h"
 #include "sampler/sampler.h"
 #include "shuffler/shuffler.h"
@@ -24,6 +25,7 @@ class Dataset {
     vector<Shard*> shards_;
     Spanner shard_index_;
     Sampler* sampler_;
+    Determiner* determiner_;
     bool shuffle_;
     Shuffler* shuffler_;
 };
