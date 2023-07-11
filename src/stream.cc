@@ -8,6 +8,7 @@
 #include "base/hash/xxhash.h"
 #include "base/string.h"
 
+namespace fs = std::filesystem;
 using std::default_random_engine;
 using std::random_device;
 using std::shuffle;
@@ -242,13 +243,13 @@ bool Stream::DeriveSampling(vector<Stream>* streams, bool relative, uint32_t see
 void Stream::InitLocalDir(const vector<Shard*> shards, vector<bool>* is_present) const {
     string dir = local_ + "/" + split_;
     set<string> files;
-    for (auto& entry : std::filesystem::recursive_directory_iterator(dir)) {
+    for (auto& entry : fs::recursive_directory_iterator(dir)) {
         files.insert(entry.path());
     }
 
     for (int64_t i = shard_offset_; i < shard_offset_ + num_shards_; ++i) {
         auto& shard = shards[i];
-        (*is_present)[i] = shard->InitLocalDir(local_, split_, files);
+        (*is_present)[i] = shard->InitLocalDir(local_, split_, keep_zip_, files);
     }
 }
 
