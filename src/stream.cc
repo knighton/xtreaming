@@ -1,12 +1,19 @@
 #include "stream.h"
 
+#include "base/hash/xxhash.h"
 #include "base/string.h"
 
 namespace xtreaming {
 namespace {
 
 string DeriveLocal(const string& remote, const string& split) {
-    return "/tmp/TODO";  // XXX
+    string root = "/tmp/streaming/dataset/";
+    string hash = XXH3_64(remote.c_str(), remote.size());
+    string local = root + hash + "/";
+    if (!split.empty()) {
+        local += split + "/";
+    }
+    return local;
 }
 
 }  // namespace
