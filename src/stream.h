@@ -46,14 +46,14 @@ class Stream {
     static bool CrossCheckWeights(const vector<Stream>& streams, bool* relative, string* err);
 
     // Drive how the streams are sampled given stream weights and underlying sizes.
-    static bool DeriveSampling(bool relative, uint32_t seed, int64_t* epoch_size,
-                               vector<Stream>* streams, string* err);
+    static bool DeriveSampling(vector<Stream>* streams, bool relative, uint32_t seed,
+                               int64_t* epoch_size, string* err);
 
   private:
     // Sampling derivations.
-    static bool DeriveSamplingRelatively(uint32_t seed, int64_t* epoch_size,
-                                         vector<Stream>* streams, string* err);
-    static bool DeriveSamplingAbsolutely(int64_t* epoch_size, vector<Stream>* streams,
+    static bool DeriveSamplingRelatively(vector<Stream>* streams, uint32_t seed,
+                                         int64_t* epoch_size, string* err);
+    static bool DeriveSamplingAbsolutely(vector<Stream>* streams, int64_t* epoch_size,
                                          string* err);
 
     // Paths.

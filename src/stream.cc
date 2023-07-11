@@ -134,8 +134,8 @@ bool Stream::CrossCheckWeights(const vector<Stream>& streams, bool* relative, st
     }
 }
 
-bool Stream::DeriveSamplingRelatively(uint32_t seed, int64_t* epoch_size,
-                                      vector<Stream>* streams, string* err) {
+bool Stream::DeriveSamplingRelatively(vector<Stream>* streams, uint32_t seed, int64_t* epoch_size,
+                                      string* err) {
     // Global number of samples to choose defaults to the same size as the underlying.
     if (!*epoch_size) {
         for (auto& stream : *streams) {
@@ -190,7 +190,7 @@ bool Stream::DeriveSamplingRelatively(uint32_t seed, int64_t* epoch_size,
     return true;
 }
 
-bool Stream::DeriveSamplingAbsolutely(int64_t* epoch_size, vector<Stream>* streams, string* err) {
+bool Stream::DeriveSamplingAbsolutely(vector<Stream>* streams, int64_t* epoch_size, string* err) {
     // StreamingDataset settings `epoch_size` is not needed for absolute weighted streams.
     if (*epoch_size) {
         *err = "Only set `epoch_size` in StreamingDataset settings when weighting streams "
@@ -228,12 +228,12 @@ bool Stream::DeriveSamplingAbsolutely(int64_t* epoch_size, vector<Stream>* strea
     return true;
 }
 
-bool Stream::DeriveSampling(bool relative, uint32_t seed, int64_t* epoch_size,
-                            vector<Stream>* streams, string* err) {
+bool Stream::DeriveSampling(vector<Stream>* streams, bool relative, uint32_t seed,
+                            int64_t* epoch_size, string* err) {
     if (relative) {
-        return DeriveSamplingRelatively(seed, epoch_size, streams, err);
+        return DeriveSamplingRelatively(streams, seed, epoch_size, err);
     } else {
-        return DeriveSamplingAbsolutely(epoch_size, streams, err);
+        return DeriveSamplingAbsolutely(streams, epoch_size, err);
     }
 }
 

@@ -169,8 +169,8 @@ bool Dataset::Init(const json& obj, string* err) {
 
     // Now that we have both the stream weights and the underlying sample counts, derive how they
     // are sampled.
-    if (!Stream::DeriveSampling(relative_weights, sampler_->seed(), sampler_->mutable_epoch_size(),
-                                &streams_, err)) {
+    if (!Stream::DeriveSampling(&streams_, relative_weights, sampler_->seed(),
+                                sampler_->mutable_epoch_size(), err)) {
         return false;
     }
 
