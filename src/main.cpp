@@ -1,10 +1,12 @@
 #include <cassert>
 #include <string>
+#include <thread>
 
 #include "base/file.h"
 #include "base/yaml.h"
 #include "dataset.h"
 
+using namespace std::chrono_literals;
 using std::string;
 using namespace xtreaming;
 
@@ -33,6 +35,9 @@ int main() {
         fprintf(stderr, "%s\n", err.c_str());
         return 3;
     }
+
+    // Sleep.
+    std::this_thread::sleep_for(60s);
 
     return 0;
 }
