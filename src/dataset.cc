@@ -198,8 +198,8 @@ bool Dataset::Bench() {
     auto t0 = NanoTime();
     int64_t epoch = 0;
     vector<int64_t> subshard_sizes;
-    vector<int64_t> to_physical;
-    sampler_->Sample(streams_, shards_, epoch, &subshard_sizes, &to_physical);
+    vector<int64_t> fake_to_real;
+    sampler_->Sample(streams_, shards_, epoch, &subshard_sizes, &fake_to_real);
     auto t = NanoTime() - t0;
     printf("%10.6f Sampling\n", t / 1e9);
 
@@ -227,12 +227,12 @@ bool Dataset::Bench() {
     // If we need to shuffle, shuffle in a node-aware and *underlying* shard-aware way.
     t0 = NanoTime();
     if (shuffle_) {
-        vector<int64_t> to_shuffled;
-        shuffler_->Shuffle(subshard_sizes, determiner_->num_canonical_nodes(), epoch, &to_shuffled);
+        vector<int64_t> shuffle;
+        shuffler_->Shuffle(subshard_sizes, determiner_->num_canonical_nodes(), epoch, &shuffle);
         for (int64_t i = 0; i < sample_ids.size(); ++i) {
             auto& sample_id = sample_ids.data()[i];
             if (sample_id != -1L) {
-                sample_id = to_shuffled[sample_id];
+                sample_id = shuffle[sample_id];
             }
         }
     }
@@ -245,7 +245,7 @@ bool Dataset::Bench() {
     for (int64_t i = 0; i < sample_ids.size(); ++i) {
         auto& sample_id = sample_ids.data()[i];
         if (sample_id != -1L) {
-            sample_id = to_physical[sample_id];
+            sample_id = fake_to_real[sample_id];
         }
     }
     t = NanoTime() - t0;

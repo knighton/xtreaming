@@ -39,7 +39,7 @@ int main() {
     assert(dataset.Bench());
 
     // Sleep.
-    std::this_thread::sleep_for(60s);
+    // std::this_thread::sleep_for(60s);
 
     return 0;
 }
