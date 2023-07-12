@@ -201,16 +201,16 @@ bool ParseBytesUnit(char chr, int64_t* unit) {
 bool ParseCountUnit(char chr, int64_t* unit) {
     switch (chr) {
       case 'k':
-        *unit = 1L << 10;
+        *unit = 1000L;
         break;
       case 'm':
-        *unit = 1L << 20;
+        *unit = 1000L * 1000L;
         break;
       case 'b':
-        *unit = 1L << 30;
+        *unit = 1000L * 1000L * 1000L;
         break;
       case 't':
-        *unit = 1L << 40;
+        *unit = 1000L * 1000L * 1000L * 1000L;
         break;
       default:
         return false;
