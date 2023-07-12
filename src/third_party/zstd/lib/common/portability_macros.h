@@ -124,12 +124,13 @@
  * - We are compiling for x86-64 and either:
  *   - DYNAMIC_BMI2 is enabled
  *   - BMI2 is supported at compile time
+ * - TODO(knighton): first branch should be 1.
  */
 #if !defined(ZSTD_DISABLE_ASM) &&                                 \
     ZSTD_ASM_SUPPORTED &&                                         \
     defined(__x86_64__) &&                                        \
     (DYNAMIC_BMI2 || defined(__BMI2__))
-# define ZSTD_ENABLE_ASM_X86_64_BMI2 1
+# define ZSTD_ENABLE_ASM_X86_64_BMI2 0
 #else
 # define ZSTD_ENABLE_ASM_X86_64_BMI2 0
 #endif
