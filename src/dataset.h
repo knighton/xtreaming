@@ -20,6 +20,8 @@ class Dataset {
   public:
     bool Init(const json& obj, string* err);
 
+    bool Bench();
+
   private:
     vector<Stream> streams_;
     vector<Shard*> shards_;

@@ -3,6 +3,7 @@
 #include <thread>
 
 #include "base/string.h"
+#include "base/xtensor.h"
 #include "determiner/all.h"
 #include "sampler/all.h"
 #include "serial/index.h"
@@ -181,6 +182,69 @@ bool Dataset::Init(const json& obj, string* err) {
         stream.CheckLocalDir(shards_, &is_shard_present);
     }
 
+    return true;
+}
+
+bool Dataset::Bench() {
+    printf("start...\n");
+
+    printf("sampler...\n");
+    // Sample each shard of each stream according to its weight.
+    //
+    // This gives us:
+    // * Size of each subshard.
+    // * Mapping from resampled fake sample ID to underlying physical sample ID.
+    //
+    // When heavily upweighting shards, you want to break them up into multiple ephemeral parts so
+    // as to not perserverate and tank the model. These are called subshards.
+    int64_t epoch = 0;
+    vector<int64_t> subshard_sizes;
+    vector<int64_t> to_physical;
+    sampler_->Sample(streams_, shards_, epoch, &subshard_sizes, &to_physical);
+
+    printf("determiner...\n");
+    // Order the global sample space across all nodes, ranks, and workers such that we have an
+    // elastically deterministic sample ordering.
+    //
+    // This gives us:
+    // * Tensor of shape (num physical nodes, ranks per node, workers per rank, batches per worker,
+    //   samples per batch).
+    int64_t num_physical_nodes = 16;
+    int64_t ranks_per_node = 5;
+    int64_t workers_per_rank = 7;
+    int64_t sample_offset = 256;
+    xt::xarray<int64_t> sample_ids;
+    string err;
+    if (!determiner_->Determine(num_physical_nodes, ranks_per_node, workers_per_rank,
+                                sampler_->epoch_size(), sample_offset, &sample_ids, &err)) {
+        fprintf(stderr, "%s\n", err.c_str());
+        return false;
+    }
+
+    printf("shuffler...\n");
+    // If we need to shuffle, shuffle in a node-aware and *underlying* shard-aware way.
+    if (shuffle_) {
+        vector<int64_t> to_shuffled;
+        shuffler_->Shuffle(subshard_sizes, determiner_->num_canonical_nodes(), epoch, &to_shuffled);
+        for (int64_t i = 0; i < sample_ids.size(); ++i) {
+            auto& sample_id = sample_ids.data()[i];
+            if (sample_id != -1L) {
+                sample_id = to_shuffled[sample_id];
+            }
+        }
+    }
+
+    printf("mapping...\n");
+    // Now that twe have partitioned and shuffled with fake resampled sample IDs, we don't need
+    // them anymore, and now convert back to their underlying physical sample IDs.
+    for (int64_t i = 0; i < sample_ids.size(); ++i) {
+        auto& sample_id = sample_ids.data()[i];
+        if (sample_id != -1L) {
+            sample_id = to_physical[sample_id];
+        }
+    }
+
+    printf("done.\n");
     return true;
 }
 
