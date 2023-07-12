@@ -6,6 +6,7 @@
 using std::default_random_engine;
 using std::random_device;
 using std::uniform_int_distribution;
+using std::uniform_real_distribution;
 
 namespace xtreaming {
 
@@ -27,30 +28,24 @@ M2* M2::New(const json& obj, string* err) {
 
 namespace {
 
-void TopOffCounts(int64_t target, default_random_engine* rng, vector<int64_t>* counts) {
-    assert(!counts->empty());
-
-    int64_t sum = 0;
-    for (auto& value : *counts) {
-        sum += value;
-    }
-
-    auto shortfall = target - sum;
-    if (!shortfall) {
+void AdjustCounts(int64_t have, int64_t want, int64_t size, default_random_engine* rng,
+                  int64_t* counts) {
+    if (have == want) {
         return;
     }
-
-    assert(shortfall < counts->size());
-    uniform_int_distribution<int64_t> choose(0, counts->size() - 1);
-    vector<bool> chosen;
-    chosen.resize(counts->size());
-    for (int64_t i = 0; i < shortfall; ++i) {
+    int64_t step = (have < want) ? 1 : -1L;
+    int64_t num_steps = step * (have - want);
+    assert(num_steps < size);
+    uniform_int_distribution<int64_t> choose(0, size - 1);
+    vector<bool>chosen;
+    chosen.resize(size);
+    for (int64_t i = 0; i < num_steps; ++i) {
         int64_t idx;
         do {
             idx = choose(*rng);
-        } while (chosen[idx]);
+        } while (chosen[idx] || (step == -1 && !counts[idx]));
         chosen[idx] = true;
-        ++(*counts)[idx];
+        counts[idx] += step;
     }
 }
 
@@ -80,64 +75,71 @@ void M2::Sample(const vector<Stream>& streams, const vector<Shard*>& shards, int
         seed += (uint32_t)epoch;
     }
 
-    // Init PRNG.
+    // Get random number generator from seed.
     random_device random;
     default_random_engine rng(random());
     rng.seed(seed);
 
-    // Iterate over each stream.
+    // Initialize shard chooses as the number of underlying samples.
+    vector<int64_t> shard_choose;
+    shard_choose.resize(shards.size());
+    for (int64_t i = 0; i < shards.size(); ++i) {
+        auto& shard = shards[i];
+        shard_choose[i] = shard->num_samples();
+    }
+
+    // Calculate exact choose per shard this epoch.
+    uniform_real_distribution<double> random_frac(0, 1);
+    int64_t epoch_size = 0;
     for (int64_t i = 0; i < streams.size(); ++i) {
-        auto& stream_id = i;
-        auto& stream = streams[stream_id];
-
-        // Gather samples per stream shard.
-        vector<int64_t> stream_shard_num_samples;
-        stream_shard_num_samples.reserve(stream.num_shards());
-        for (int64_t j = 0; j < stream.num_shards(); ++j) {
-            auto shard_id = stream.shard_offset() + j;
-            auto& shard = shards[shard_id];
-            stream_shard_num_samples.emplace_back(shard->num_samples());
+        // If stream choose matches stream num samples, we're done.
+        auto& stream = streams[i];
+        epoch_size += stream.choose();
+        if (stream.choose() == stream.num_samples()) {
+            continue;
         }
 
-        // Calculate choose per stream shard.
-        vector<int64_t> stream_shard_chooses = stream_shard_num_samples;
-        if (stream.choose() != stream.num_samples()) {
-            for (auto& choose : stream_shard_chooses) {
-                choose *= stream.choose();
-                choose /= stream.num_samples();
-            }
-            TopOffCounts(stream.choose(), &rng, &stream_shard_chooses);
+        // Scale shard choose according to the ratio of stream choose to stream sample count.
+        double scale = (double)stream.choose() / (double)stream.num_samples();
+        auto stream_begin = stream.shard_offset();
+        auto stream_end = stream_begin + stream.num_shards();
+        int64_t got_stream_choose = 0;
+        for (int64_t j = stream_begin; j < stream_end; ++j) {
+            auto& int_choose = shard_choose[j];
+            double exact_choose = (double)int_choose * scale;
+            double frac = exact_choose - (double)(int64_t)exact_choose;
+            bool one_more = frac < random_frac(rng);
+            int_choose = (int64_t)exact_choose + one_more;
+            got_stream_choose += int_choose;
         }
 
-        // Iterate over each shard of this stream.
-        for (int64_t j = 0; j < stream.num_shards(); ++j) {
-            auto shard_id = stream.shard_offset() + j;
-            auto& shard = shards[shard_id];
-            auto& shard_choose = stream_shard_chooses[j];
+        // If our observed chooses don't add up to the target, adjust them up or down.
+        if (got_stream_choose != stream.choose()) {
+            AdjustCounts(got_stream_choose, stream.choose(), stream.num_shards(), &rng,
+                         &shard_choose[stream_begin]);
+        }
+    }
 
-            // Calculate shuffle units.
-            auto num_full_repeats = shard_choose / shard->num_samples();
-            for (int64_t k = 0; k < num_full_repeats; ++k) {
-                subshard_sizes->emplace_back(shard->num_samples());
-            }
-            auto remainder = shard_choose % shard->num_samples();
-            if (remainder) {
-                subshard_sizes->emplace_back(remainder);
-            }
+    // Use that to calculate (a) subshard sizes and (b) fake to real sample ID mapping.
+    fake_to_real->reserve(epoch_size);
+    for (int64_t i = 0; i < shards.size(); ++i) {
+        auto& shard = shards[i];
 
-            // Calculate sample IDs of any full repeats.
-            for (int64_t k = 0; k < num_full_repeats; ++k) {
-                for (int64_t m = 0; m < shard->num_samples(); ++m) {
-                    fake_to_real->emplace_back(shard->sample_offset() + m);
-                }
+        // Handle any full repeats.
+        int64_t num_full_repeats = shard_choose[i] / shard->num_samples();
+        for (int64_t j = 0; j < num_full_repeats; ++j) {
+            subshard_sizes->emplace_back(shard->num_samples());
+            for (int64_t k = 0; k < shard->num_samples(); ++k) {
+                fake_to_real->emplace_back(shard->sample_offset() + k);
             }
+        }
 
-            // Calculate sample IDs of a possible partial repeat.
-            auto target = shard_choose % shard->num_samples();
-            if (target) {
-                SubsampleExtending(shard->sample_offset(), shard->num_samples(), target, &rng,
-                                   fake_to_real);
-            }
+        // Handle any partial repeat.
+        int64_t partial_repeat = shard_choose[i] % shard->num_samples();
+        if (partial_repeat) {
+            subshard_sizes->emplace_back(partial_repeat);
+            SubsampleExtending(shard->sample_offset(), shard->num_samples(), partial_repeat, &rng,
+                               fake_to_real);
         }
     }
 }
