@@ -10,8 +10,6 @@
 #include "serial/index.h"
 #include "shuffler/all.h"
 
-using std::thread;
-
 namespace xtreaming {
 
 bool Dataset::Init(const json& obj, string* err) {
@@ -105,13 +103,13 @@ bool Dataset::Init(const json& obj, string* err) {
     vector<vector<Shard*>> shard_lists;
     {
         shard_lists.resize(streams_.size());
-        vector<thread> threads;
+        vector<std::thread> threads;
         threads.resize(streams_.size());
         for (int64_t i = 0; i < streams_.size(); ++i) {
-            threads[i] = thread(LoadIndex, i, &streams_[i], &shard_lists[i]);
+            threads[i] = std::thread(LoadIndex, i, &streams_[i], &shard_lists[i]);
         }
-        for (auto& th : threads) {
-            th.join();
+        for (auto& thread : threads) {
+            thread.join();
         }
     }
 
@@ -186,6 +184,13 @@ bool Dataset::Init(const json& obj, string* err) {
     return true;
 }
 
+void Dataset::Sample(int64_t epoch_id, vector<int64_t>* subshard_sizes,
+                     vector<int64_t>* fake_to_real, int64_t* t0, int64_t* t1) {
+    *t0 = NanoTime();
+    sampler_->Sample(streams_, shards_, epoch_id, subshard_sizes, fake_to_real);
+    *t1 = NanoTime();
+}
+
 bool Dataset::Bench() {
     // Sample each shard of each stream according to its weight.
     //
@@ -195,13 +200,15 @@ bool Dataset::Bench() {
     //
     // When heavily upweighting shards, you want to break them up into multiple ephemeral parts so
     // as to not perserverate and tank the model. These are called subshards.
-    auto t0 = NanoTime();
-    int64_t epoch = 0;
+    //
+    // Do this work in parallel. Its results aren't immediately needed.
+    int64_t epoch_id = 0;
     vector<int64_t> subshard_sizes;
     vector<int64_t> fake_to_real;
-    sampler_->Sample(streams_, shards_, epoch, &subshard_sizes, &fake_to_real);
-    auto t = NanoTime() - t0;
-    printf("%10.6f Sampling\n", t / 1e9);
+    int64_t t0;
+    int64_t t1;
+    auto sampling_thread = std::thread(&Dataset::Sample, this, epoch_id, &subshard_sizes,
+                                       &fake_to_real, &t0, &t1);
 
     // Order the global sample space across all nodes, ranks, and workers such that we have an
     // elastically deterministic sample ordering.
@@ -221,14 +228,19 @@ bool Dataset::Bench() {
         fprintf(stderr, "%s\n", err.c_str());
         return false;
     }
-    t = NanoTime() - t0;
+    auto t = NanoTime() - t0;
     printf("%10.6f Determinism\n", t / 1e9);
+
+    // Join the sampling thread.
+    sampling_thread.join();
+    t = t1 - t0;
+    printf("%10.6f Sampling\n", t / 1e9);
 
     // If we need to shuffle, shuffle in a node-aware and *underlying* shard-aware way.
     t0 = NanoTime();
     if (shuffle_) {
         vector<int64_t> shuffle;
-        shuffler_->Shuffle(subshard_sizes, determiner_->num_canonical_nodes(), epoch, &shuffle);
+        shuffler_->Shuffle(subshard_sizes, determiner_->num_canonical_nodes(), epoch_id, &shuffle);
         for (int64_t i = 0; i < sample_ids.size(); ++i) {
             auto& sample_id = sample_ids.data()[i];
             if (sample_id != -1L) {

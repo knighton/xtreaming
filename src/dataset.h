@@ -23,6 +23,9 @@ class Dataset {
     bool Bench();
 
   private:
+    void Sample(int64_t epoch_id, vector<int64_t>* subshard_sizes, vector<int64_t>* fake_to_real,
+                int64_t* t0, int64_t* t1);
+
     vector<Stream> streams_;
     vector<Shard*> shards_;
     Spanner shard_index_;
