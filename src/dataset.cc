@@ -3,6 +3,7 @@
 #include <thread>
 
 #include "base/string.h"
+#include "base/time.h"
 #include "base/xtensor.h"
 #include "determiner/all.h"
 #include "sampler/all.h"
@@ -186,9 +187,6 @@ bool Dataset::Init(const json& obj, string* err) {
 }
 
 bool Dataset::Bench() {
-    printf("start...\n");
-
-    printf("sampler...\n");
     // Sample each shard of each stream according to its weight.
     //
     // This gives us:
@@ -197,18 +195,21 @@ bool Dataset::Bench() {
     //
     // When heavily upweighting shards, you want to break them up into multiple ephemeral parts so
     // as to not perserverate and tank the model. These are called subshards.
+    auto t0 = NanoTime();
     int64_t epoch = 0;
     vector<int64_t> subshard_sizes;
     vector<int64_t> to_physical;
     sampler_->Sample(streams_, shards_, epoch, &subshard_sizes, &to_physical);
+    auto t = NanoTime() - t0;
+    printf("%10.6f Sampling\n", t / 1e9);
 
-    printf("determiner...\n");
     // Order the global sample space across all nodes, ranks, and workers such that we have an
     // elastically deterministic sample ordering.
     //
     // This gives us:
     // * Tensor of shape (num physical nodes, ranks per node, workers per rank, batches per worker,
     //   samples per batch).
+    t0 = NanoTime();
     int64_t num_physical_nodes = 16;
     int64_t ranks_per_node = 5;
     int64_t workers_per_rank = 7;
@@ -220,9 +221,11 @@ bool Dataset::Bench() {
         fprintf(stderr, "%s\n", err.c_str());
         return false;
     }
+    t = NanoTime() - t0;
+    printf("%10.6f Determinism\n", t / 1e9);
 
-    printf("shuffler...\n");
     // If we need to shuffle, shuffle in a node-aware and *underlying* shard-aware way.
+    t0 = NanoTime();
     if (shuffle_) {
         vector<int64_t> to_shuffled;
         shuffler_->Shuffle(subshard_sizes, determiner_->num_canonical_nodes(), epoch, &to_shuffled);
@@ -233,18 +236,21 @@ bool Dataset::Bench() {
             }
         }
     }
+    t = NanoTime() - t0;
+    printf("%10.6f Shuffling\n", t / 1e9);
 
-    printf("mapping...\n");
     // Now that twe have partitioned and shuffled with fake resampled sample IDs, we don't need
     // them anymore, and now convert back to their underlying physical sample IDs.
+    t0 = NanoTime();
     for (int64_t i = 0; i < sample_ids.size(); ++i) {
         auto& sample_id = sample_ids.data()[i];
         if (sample_id != -1L) {
             sample_id = to_physical[sample_id];
         }
     }
+    t = NanoTime() - t0;
+    printf("%10.6f Mapping\n", t / 1e9);
 
-    printf("done.\n");
     return true;
 }
 
