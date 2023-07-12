@@ -12,7 +12,7 @@ bool Sampler::Init(const json& obj, string* err) {
         return false;
     }
 
-    if (!GetBytes(obj, "epoch_size", -1L, &epoch_size_, err)) {
+    if (!GetCount(obj, "epoch_size", -1L, &epoch_size_, err)) {
         return false;
     }
 
