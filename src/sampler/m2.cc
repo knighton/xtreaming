@@ -27,11 +27,11 @@ M2* M2::New(const json& obj, string* err) {
 
 namespace {
 
-void FixShortfall(int64_t target, default_random_engine* rng, vector<int64_t>* values) {
-    assert(!values->empty());
+void TopOffCounts(int64_t target, default_random_engine* rng, vector<int64_t>* counts) {
+    assert(!counts->empty());
 
     int64_t sum = 0;
-    for (auto& value : *values) {
+    for (auto& value : *counts) {
         sum += value;
     }
 
@@ -40,17 +40,30 @@ void FixShortfall(int64_t target, default_random_engine* rng, vector<int64_t>* v
         return;
     }
 
-    assert(shortfall < values->size());
-    uniform_int_distribution<int64_t> choose(0, values->size() - 1);
+    assert(shortfall < counts->size());
+    uniform_int_distribution<int64_t> choose(0, counts->size() - 1);
     vector<bool> chosen;
-    chosen.resize(values->size());
+    chosen.resize(counts->size());
     for (int64_t i = 0; i < shortfall; ++i) {
         int64_t idx;
         do {
             idx = choose(*rng);
         } while (chosen[idx]);
         chosen[idx] = true;
-        ++(*values)[idx];
+        ++(*counts)[idx];
+    }
+}
+
+void SubsampleExtending(int64_t begin, int64_t count, int64_t choose, default_random_engine* rng,
+                        vector<int64_t>* values) {
+    vector<int64_t> indices;
+    indices.resize(count);
+    for (int64_t i = 0; i < count; ++i) {
+        indices[i] = begin + i;
+    }
+    shuffle(indices.begin(), indices.end(), *rng);
+    for (int64_t i = 0; i < choose; ++i) {
+        values->emplace_back(i);
     }
 }
 
@@ -93,7 +106,7 @@ void M2::Sample(const vector<Stream>& streams, const vector<Shard*>& shards, int
                 choose *= stream.choose();
                 choose /= stream.num_samples();
             }
-            FixShortfall(stream.choose(), &rng, &stream_shard_chooses);
+            TopOffCounts(stream.choose(), &rng, &stream_shard_chooses);
         }
 
         // Iterate over each shard of this stream.
@@ -122,14 +135,8 @@ void M2::Sample(const vector<Stream>& streams, const vector<Shard*>& shards, int
             // Calculate sample IDs of a possible partial repeat.
             auto target = shard_choose % shard->num_samples();
             if (target) {
-                vector<int64_t> counts;
-                counts.resize(shard->num_samples());
-                FixShortfall(target, &rng, &counts);
-                for (int64_t k = 0; k < shard->num_samples(); ++k) {
-                    if (counts[k]) {
-                        fake_to_real->emplace_back(shard->sample_offset() + k);
-                    }
-                }
+                SubsampleExtending(shard->sample_offset(), shard->num_samples(), target, &rng,
+                                   fake_to_real);
             }
         }
     }
