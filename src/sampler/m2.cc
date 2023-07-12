@@ -5,7 +5,7 @@
 
 using std::default_random_engine;
 using std::random_device;
-using std::shuffle;
+using std::uniform_int_distribution;
 
 namespace xtreaming {
 
@@ -28,6 +28,8 @@ M2* M2::New(const json& obj, string* err) {
 namespace {
 
 void FixShortfall(int64_t target, default_random_engine* rng, vector<int64_t>* values) {
+    assert(!values->empty());
+
     int64_t sum = 0;
     for (auto& value : *values) {
         sum += value;
@@ -38,23 +40,25 @@ void FixShortfall(int64_t target, default_random_engine* rng, vector<int64_t>* v
         return;
     }
 
-    vector<int64_t> indices;
-    indices.reserve(values->size());
-    for (int64_t i = 0; i < values->size(); ++i) {
-        indices.emplace_back(i);
-    }
-    shuffle(indices.begin(), indices.end(), *rng);
+    assert(shortfall < values->size());
+    uniform_int_distribution<int64_t> choose(0, values->size() - 1);
+    vector<bool> chosen;
+    chosen.resize(values->size());
     for (int64_t i = 0; i < shortfall; ++i) {
-        auto& index = indices[i];
-        ++(*values)[index];
+        int64_t idx;
+        do {
+            idx = choose(*rng);
+        } while (chosen[idx]);
+        chosen[idx] = true;
+        ++(*values)[idx];
     }
 }
 
 }  // namespace
 
 void M2::Sample(const vector<Stream>& streams, const vector<Shard*>& shards, int64_t epoch,
-                vector<int64_t>* shuffle_units, vector<int64_t>* fake_to_real) {
-    shuffle_units->clear();
+                vector<int64_t>* subshard_sizes, vector<int64_t>* fake_to_real) {
+    subshard_sizes->clear();
     fake_to_real->clear();
 
     // Get seed (different each epoch if balanced, same each epoch if fixed sampling).
@@ -101,11 +105,11 @@ void M2::Sample(const vector<Stream>& streams, const vector<Shard*>& shards, int
             // Calculate shuffle units.
             auto num_full_repeats = shard_choose / shard->num_samples();
             for (int64_t k = 0; k < num_full_repeats; ++k) {
-                shuffle_units->emplace_back(shard->num_samples());
+                subshard_sizes->emplace_back(shard->num_samples());
             }
             auto remainder = shard_choose % shard->num_samples();
             if (remainder) {
-                shuffle_units->emplace_back(remainder);
+                subshard_sizes->emplace_back(remainder);
             }
 
             // Calculate sample IDs of any full repeats.
