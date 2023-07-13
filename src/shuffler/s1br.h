@@ -18,6 +18,10 @@ class S1BR : public S1 {
                  vector<int64_t>* sample_ids) override;
 
   protected:
+    static void ShuffleBlocks(int64_t thread_id, int64_t num_threads, uint32_t seed, int64_t epoch,
+                              vector<pair<int64_t, int64_t>>* block_spans,
+                              vector<int64_t>* sample_ids);
+
     int64_t min_block_size_;
     int64_t max_block_size_;
 };

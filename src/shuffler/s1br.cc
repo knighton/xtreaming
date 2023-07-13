@@ -1,9 +1,11 @@
 #include "s1br.h"
 
 #include <algorithm>
+#include <thread>
 
 #include "base/string.h"
 
+using std::make_pair;
 using std::min;
 using std::uniform_int_distribution;
 
@@ -48,6 +50,19 @@ S1BR* S1BR::New(const json& obj, string* err) {
     return ret;
 }
 
+void S1BR::ShuffleBlocks(int64_t thread_id, int64_t num_threads, uint32_t seed, int64_t epoch,
+                         vector<pair<int64_t, int64_t>>* block_spans,
+                         vector<int64_t>* sample_ids) {
+    default_random_engine epoch_rng;
+    int64_t begin = block_spans->size() * thread_id / num_threads;
+    int64_t end = block_spans->size() * (thread_id + 1) / num_threads;
+    for (int64_t i = begin; i < end; ++i) {
+        auto& block_span = (*block_spans)[i];
+        epoch_rng.seed(seed + (uint32_t)epoch);
+        shuffle(&(*sample_ids)[block_span.first], &(*sample_ids)[block_span.second], epoch_rng);
+    }
+}
+
 void S1BR::Shuffle(const vector<int64_t>& shard_sizes, int64_t num_nodes, uint32_t seed,
                    int64_t epoch, int64_t min_block_size, int64_t max_block_size,
                    vector<int64_t>* sample_ids) {
@@ -59,11 +74,12 @@ void S1BR::Shuffle(const vector<int64_t>& shard_sizes, int64_t num_nodes, uint32
     ShuffleShards(shard_sizes, num_nodes, seed, epoch, &num_samples, &spans, &meta_spans,
                   &epoch_rng);
 
-    // Populate the global sample ID mapping, shuffling within each block within each node span.
+    // Prepare each node's range.
     sample_ids->clear();
     sample_ids->resize(num_samples);
     int64_t end = 0;
     uniform_int_distribution<int64_t> get_block_size(min_block_size, max_block_size);
+    vector<pair<int64_t, int64_t>> block_spans;
     for (auto& meta_span : meta_spans) {
         // Populate sample IDs.
         int64_t node_begin = end;
@@ -76,14 +92,26 @@ void S1BR::Shuffle(const vector<int64_t>& shard_sizes, int64_t num_nodes, uint32
             end += span_size;
         }
 
-        // Shuffle within each block (which are variably sized within a range).
+        // Delineate the variable sized shuffle blocks.
         int64_t block_begin = node_begin;
         while (block_begin < end) {
             auto block_size = get_block_size(epoch_rng);
             auto block_end = min(block_begin + block_size, end);
-            shuffle(&(*sample_ids)[block_begin], &(*sample_ids)[block_end], epoch_rng);
+            block_spans.emplace_back(make_pair(block_begin, block_end));
             block_begin += block_size;
         }
+    }
+
+    // Shuffle within each block in parallel.
+    int64_t num_threads = std::thread::hardware_concurrency();
+    vector<std::thread> threads;
+    threads.resize(num_threads);
+    for (int64_t i = 0; i < num_threads; ++i) {
+        threads[i] = std::thread(ShuffleBlocks, i, num_threads, seed, epoch, &block_spans,
+                                 sample_ids);
+    }
+    for (auto& thread : threads) {
+        thread.join();
     }
 }
 
