@@ -184,10 +184,10 @@ bool Dataset::Init(const json& obj, string* err) {
     return true;
 }
 
-void Dataset::Sample(int64_t epoch_id, vector<int64_t>* subshard_sizes,
+void Dataset::Sample(int64_t epoch, vector<int64_t>* subshard_sizes,
                      vector<int64_t>* fake_to_real, int64_t* t0, int64_t* t1) {
     *t0 = NanoTime();
-    sampler_->Sample(streams_, shards_, epoch_id, subshard_sizes, fake_to_real);
+    sampler_->Sample(streams_, shards_, epoch, subshard_sizes, fake_to_real);
     *t1 = NanoTime();
 }
 
@@ -202,12 +202,12 @@ bool Dataset::Bench() {
     // as to not perserverate and tank the model. These are called subshards.
     //
     // Do this work in parallel. Its results aren't immediately needed.
-    int64_t epoch_id = 0;
+    int64_t epoch = 0;
     vector<int64_t> subshard_sizes;
     vector<int64_t> fake_to_real;
     int64_t t0;
     int64_t t1;
-    auto sampling_thread = std::thread(&Dataset::Sample, this, epoch_id, &subshard_sizes,
+    auto sampling_thread = std::thread(&Dataset::Sample, this, epoch, &subshard_sizes,
                                        &fake_to_real, &t0, &t1);
 
     // Order the global sample space across all nodes, ranks, and workers such that we have an
@@ -240,7 +240,7 @@ bool Dataset::Bench() {
     t0 = NanoTime();
     if (shuffle_) {
         vector<int64_t> shuffle;
-        shuffler_->Shuffle(subshard_sizes, determiner_->num_canonical_nodes(), epoch_id, &shuffle);
+        shuffler_->Shuffle(subshard_sizes, determiner_->num_canonical_nodes(), epoch, &shuffle);
         for (int64_t i = 0; i < sample_ids.size(); ++i) {
             auto& sample_id = sample_ids.data()[i];
             if (sample_id != -1L) {
@@ -254,8 +254,9 @@ bool Dataset::Bench() {
     // Now that twe have partitioned and shuffled with fake resampled sample IDs, we don't need
     // them anymore, and now convert back to their underlying physical sample IDs.
     t0 = NanoTime();
+    auto data = sample_ids.data();
     for (int64_t i = 0; i < sample_ids.size(); ++i) {
-        auto& sample_id = sample_ids.data()[i];
+        auto& sample_id = data[i];
         if (sample_id != -1L) {
             sample_id = fake_to_real[sample_id];
         }
