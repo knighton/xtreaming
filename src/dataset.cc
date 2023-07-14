@@ -254,7 +254,7 @@ bool Dataset::Init(const json& obj, string* err) {
     int64_t bucket_size;
     bool relative_weights;
     vector<function<bool()>> stages = {
-        [&]{ return InitShardIndexArgs(obj, &bucket_size, err); },
+        [&]{ return GetShardIndexArgs(obj, &bucket_size, err); },
         [&]{ return InitSampler(obj, err); },
         [&]{ return InitDeterminer(obj, err); },
         [&]{ return InitShuffler(obj, err); },
