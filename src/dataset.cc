@@ -1,5 +1,6 @@
 #include "dataset.h"
 
+#include <functional>
 #include <thread>
 
 #include "base/string.h"
@@ -10,65 +11,90 @@
 #include "serial/index.h"
 #include "shuffler/all.h"
 
+using std::function;
+
 namespace xtreaming {
 
-bool Dataset::Init(const json& obj, string* err) {
-    json empty_obj;
+bool Dataset::InitShardIndexArgs(const json& obj, int64_t* bucket_size, string* err) {
+    json empty;
     const json* section;
-
-    // Get indexing arguments.
-    int64_t shard_index_bucket_size;
-    if (!GetObject(obj, "shard_index", &empty_obj, &section, err)) {
-        return false;
-    }
-    if (!GetInt64(*section, "bucket_size", 1024, &shard_index_bucket_size, err)) {
-        return false;
-    }
-    if (shard_index_bucket_size < 1) {
-        *err = StringPrintf("`index.bucket_size` must be postive, but got: %ld.",
-                            shard_index_bucket_size);
+    if (!GetObject(obj, "shard_index", &empty, &section, err)) {
         return false;
     }
 
-    // Init sampling.
-    if (!GetObject(obj, "sampler", &empty_obj, &section, err)) {
+    if (!GetInt64(*section, "bucket_size", 1024, bucket_size, err)) {
         return false;
     }
+
+    if (*bucket_size < 1) {
+        *err = StringPrintf("`index.bucket_size` must be postive, but got: %ld.", *bucket_size);
+        return false;
+    }
+
+    return true;
+}
+
+bool Dataset::InitSampler(const json& obj, string* err) {
+    json empty;
+    const json* section;
+    if (!GetObject(obj, "sampler", &empty, &section, err)) {
+        return false;
+    }
+
     sampler_ = GetSampler(*section, err);
     if (!sampler_) {
         return false;
     }
 
-    // Init determinism.
-    if (!GetObject(obj, "determiner", &empty_obj, &section, err)) {
+    return true;
+}
+
+bool Dataset::InitDeterminer(const json& obj, string* err) {
+    json empty;
+    const json* section;
+    if (!GetObject(obj, "determiner", &empty, &section, err)) {
         return false;
     }
+
     determiner_ = GetDeterminer(*section, err);
     if (!determiner_) {
         return false;
     }
 
-    // Init shuffling.
+    return true;
+}
+
+bool Dataset::InitShuffler(const json& obj, string* err) {
+    json empty;
+    const json* section;
     if (!GetBool(obj, "shuffle", false, &shuffle_, err)) {
         return false;
     }
-    if (!GetObject(obj, "shuffler", &empty_obj, &section, err)) {
+
+    if (!GetObject(obj, "shuffler", &empty, &section, err)) {
         return false;
     }
+
     shuffler_ = GetShuffler(*section, err);
     if (!shuffler_) {
         return false;
     }
 
-    // Init streams and their shards.
+    return true;
+}
+
+bool Dataset::InitStreams(const json& obj, string* err) {
+    json empty;
     const json* all;
-    if (!GetObject(obj, "stream", &empty_obj, &all, err)) {
+    if (!GetObject(obj, "stream", &empty, &all, err)) {
         return false;
     }
+
     const json* streams;
-    if (!GetObject(obj, "streams", &empty_obj, &streams, err)) {
+    if (!GetObject(obj, "streams", &empty, &streams, err)) {
         return false;
     }
+
     if (streams->empty()) {
         // `stream` is taken as the single stream, as `streams` is not provided.
         streams_.resize(1);
@@ -93,12 +119,10 @@ bool Dataset::Init(const json& obj, string* err) {
         }
     }
 
-    // Cross-check stream weighting scheme.
-    bool relative_weights;
-    if (!Stream::CrossCheckWeights(streams_, &relative_weights, err)) {
-        return false;
-    }
+    return true;
+}
 
+bool Dataset::InitShards(string* err) {
     // Initialize each stream's shards from JSON in parallel.
     vector<vector<Shard*>> shard_lists;
     {
@@ -153,39 +177,66 @@ bool Dataset::Init(const json& obj, string* err) {
         }
     }
 
-    // Calculate shard sample offsets and initialize the shard index.
+    // Calculate shard sample offsets.
     {
         int64_t sample_offset = 0;
-        vector<int64_t> shard_sizes;
-        shard_sizes.reserve(shards_.size());
         for (auto& shard : shards_) {
             shard->set_sample_offset(sample_offset);
             auto size = shard->num_samples();
             sample_offset += size;
-            shard_sizes.emplace_back(size);
         }
-        shard_index_.Init(shard_sizes, shard_index_bucket_size);
-    }
-
-    // Now that we have both the stream weights and the underlying sample counts, derive how they
-    // are sampled.
-    if (!Stream::DeriveSampling(&streams_, relative_weights, sampler_->seed(),
-                                sampler_->mutable_epoch_size(), err)) {
-        return false;
-    }
-
-    // Scan local directories, normalizing and gathering which shards are currently present.
-    vector<bool> is_shard_present;
-    is_shard_present.resize(shards_.size());
-    for (auto& stream : streams_) {
-        stream.CheckLocalDir(shards_, &is_shard_present);
     }
 
     return true;
 }
 
-void Dataset::Sample(int64_t epoch, vector<int64_t>* subshard_sizes,
-                     vector<int64_t>* fake_to_real, int64_t* t0, int64_t* t1) {
+bool Dataset::InitShardIndex(int64_t bucket_size, string* err) {
+    vector<int64_t> shard_sizes;
+    shard_sizes.reserve(shards_.size());
+    for (auto& shard : shards_) {
+        shard_sizes.emplace_back(shard->num_samples());
+    }
+    shard_index_.Init(shard_sizes, bucket_size);
+    return true;
+}
+
+bool Dataset::InitCaches(string* err) {
+    vector<bool> is_shard_present;
+    is_shard_present.resize(shards_.size());
+    for (auto& stream : streams_) {
+        stream.CheckLocalDir(shards_, &is_shard_present);
+    }
+    return true;
+}
+
+bool Dataset::Init(const json& obj, string* err) {
+    int64_t bucket_size;
+    bool relative_weights;
+    vector<function<bool()>> stages = {
+        [&]{ return InitShardIndexArgs(obj, &bucket_size, err); },
+        [&]{ return InitSampler(obj, err); },
+        [&]{ return InitDeterminer(obj, err); },
+        [&]{ return InitShuffler(obj, err); },
+        [&]{ return InitStreams(obj, err); },
+        [&]{ return Stream::CrosscheckWeights(streams_, &relative_weights, err); },
+        [&]{ return InitShards(err); },
+        [&]{ return InitShardIndex(bucket_size, err); },
+        [&]{ return Stream::DeriveSampling(&streams_, relative_weights, sampler_->seed(),
+                                           sampler_->mutable_epoch_size(), err); },
+        [&]{ return InitCaches(err); },
+    };
+
+    for (auto& stage : stages) {
+        if (!stage()) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void Dataset::SampleThread(int64_t epoch, vector<int64_t>* subshard_sizes,
+                           vector<int64_t>* fake_to_real, int64_t* t0, int64_t* t1) {
     *t0 = NanoTime();
     sampler_->Sample(streams_, shards_, epoch, subshard_sizes, fake_to_real);
     *t1 = NanoTime();
@@ -207,7 +258,7 @@ bool Dataset::Bench() {
     vector<int64_t> fake_to_real;
     int64_t t0;
     int64_t t1;
-    auto sampling_thread = std::thread(&Dataset::Sample, this, epoch, &subshard_sizes,
+    auto sampling_thread = std::thread(&Dataset::SampleThread, this, epoch, &subshard_sizes,
                                        &fake_to_real, &t0, &t1);
 
     // Order the global sample space across all nodes, ranks, and workers such that we have an

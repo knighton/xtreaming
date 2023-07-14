@@ -23,8 +23,17 @@ class Dataset {
     bool Bench();
 
   private:
-    void Sample(int64_t epoch, vector<int64_t>* subshard_sizes, vector<int64_t>* fake_to_real,
-                int64_t* t0, int64_t* t1);
+    bool InitShardIndexArgs(const json& obj, int64_t* bucket_size, string* err);
+    bool InitSampler(const json& obj, string* err);
+    bool InitDeterminer(const json& obj, string* err);
+    bool InitShuffler(const json& obj, string* err);
+    bool InitStreams(const json& obj, string* err);
+    bool InitShards(string* err);
+    bool InitShardIndex(int64_t bucket_size, string* err);
+    bool InitCaches(string* err);
+
+    void SampleThread(int64_t epoch, vector<int64_t>* subshard_sizes,
+                      vector<int64_t>* fake_to_real, int64_t* t0, int64_t* t1);
 
     vector<Stream> streams_;
     vector<Shard*> shards_;

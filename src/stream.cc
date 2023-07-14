@@ -118,7 +118,7 @@ bool Stream::Init(const json& obj, const json& all, string* err) {
     return true;
 }
 
-bool Stream::CrossCheckWeights(const vector<Stream>& streams, bool* relative, string* err) {
+bool Stream::CrosscheckWeights(const vector<Stream>& streams, bool* relative, string* err) {
     int num_relative = 0;
     for (auto& stream : streams) {
         num_relative += (0 <= stream.proportion());
