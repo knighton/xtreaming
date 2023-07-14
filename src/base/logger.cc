@@ -24,6 +24,18 @@ bool GetLogLevel(const string& name, LogLevel* level) {
     return true;
 }
 
+ScopeTimer::ScopeTimer(const string& name, Logger* logger) {
+    name_ = name;
+    logger_ = logger;
+    string line = StringPrintf("Enter: %s", name_.c_str());
+    logger_->Log(LogLevel::TRACE, line);
+}
+
+ScopeTimer::~ScopeTimer() {
+    string line = StringPrintf("Leave: %s", name_.c_str());
+    logger_->Log(LogLevel::TRACE, line);
+}
+
 void Logger::Log(LogLevel level, const string& text) {
     if (level < min_level_) {
         return;
@@ -47,15 +59,15 @@ bool Logger::Init(const string& path, LogLevel min_level, string* err) {
     min_level_ = min_level;
     level_names_ = {
         "",
-        "trace",
-        "debug",
-        "info",
-        "warn",
-        "error",
-        "fatal"
+        "TRACE",
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "FATAL"
     };
     start_ = NanoTime();
-    string line = StringPrintf("[start] unix time %.9f", (double)start_ / 1e9);
+    string line = StringPrintf("Start: Unix time %.9f", (double)start_ / 1e9);
     Log(LogLevel::INFO, line);
     return true;
 }
@@ -69,6 +81,10 @@ bool Logger::Init(const string& path, const string& min_level_name, string* err)
     }
 
     return Init(path, min_level, err);
+}
+
+ScopeTimer Logger::Scope(const string& name) {
+    return ScopeTimer(name, this);
 }
 
 }  // namespace xtreaming

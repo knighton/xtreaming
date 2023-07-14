@@ -19,6 +19,21 @@ enum class LogLevel {
 
 bool GetLogLevel(const string& name, LogLevel* level);
 
+class Logger;
+
+class ScopeTimer {
+  public:
+    // Start timing, reporting back to the logger on enter and exit.
+    ScopeTimer(const string& name, Logger* logger);
+
+    // Stop timing, reporting back to the logger.
+    ~ScopeTimer();
+
+  private:
+    string name_;
+    Logger* logger_;
+};
+
 class Logger {
   public:
     // Log some text at some log level.
@@ -27,6 +42,9 @@ class Logger {
     // Initialize with a file path to append to and a minimum log level.
     bool Init(const string& path, LogLevel min_level, string* err);
     bool Init(const string& path, const string& min_level, string* err);
+
+    // Get a scope logger with the given scope name.
+    ScopeTimer Scope(const string& name);
 
   private:
     string path_;                 // Where to log to.
