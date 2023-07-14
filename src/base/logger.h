@@ -32,6 +32,7 @@ class ScopeTimer {
   private:
     string name_;
     Logger* logger_;
+    int64_t start_;
 };
 
 class Logger {

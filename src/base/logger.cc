@@ -27,12 +27,14 @@ bool GetLogLevel(const string& name, LogLevel* level) {
 ScopeTimer::ScopeTimer(const string& name, Logger* logger) {
     name_ = name;
     logger_ = logger;
-    string line = StringPrintf("Scope: + %s", name_.c_str());
+    string line = StringPrintf("[Scope] + %s", name_.c_str());
     logger_->Log(LogLevel::TRACE, line);
+    start_ = NanoTime();
 }
 
 ScopeTimer::~ScopeTimer() {
-    string line = StringPrintf("Scope: - %s", name_.c_str());
+    int64_t elapsed_ms = (NanoTime() - start_) / 1000000L;
+    string line = StringPrintf("[Scope] - %s (took %ldms)", name_.c_str(), elapsed_ms);
     logger_->Log(LogLevel::TRACE, line);
 }
 
@@ -41,9 +43,9 @@ void Logger::Log(LogLevel level, const string& text) {
         return;
     }
 
-    double time = (double)(NanoTime() - start_) / 1e6;
+    double time = (double)(NanoTime() - start_) / 1e9;
     auto& level_name = level_names_[(size_t)level];
-    string line = StringPrintf("%14.3f [%s] %s\n", time, level_name.c_str(), text.c_str());
+    string line = StringPrintf("%14.6f [%s] %s\n", time, level_name.c_str(), text.c_str());
     fputs(line.c_str(), file_);
     fflush(file_);
 }
@@ -67,7 +69,7 @@ bool Logger::Init(const string& path, LogLevel min_level, string* err) {
         "FATAL"
     };
     start_ = NanoTime();
-    string line = StringPrintf("Started at Unix time: %.9f", (double)start_ / 1e9);
+    string line = StringPrintf("[Start] Unix time: %.9f", (double)start_ / 1e9);
     Log(LogLevel::INFO, line);
     return true;
 }
