@@ -27,12 +27,12 @@ bool GetLogLevel(const string& name, LogLevel* level) {
 ScopeTimer::ScopeTimer(const string& name, Logger* logger) {
     name_ = name;
     logger_ = logger;
-    string line = StringPrintf("Enter: %s", name_.c_str());
+    string line = StringPrintf("Scope: + %s", name_.c_str());
     logger_->Log(LogLevel::TRACE, line);
 }
 
 ScopeTimer::~ScopeTimer() {
-    string line = StringPrintf("Leave: %s", name_.c_str());
+    string line = StringPrintf("Scope: - %s", name_.c_str());
     logger_->Log(LogLevel::TRACE, line);
 }
 
@@ -67,7 +67,7 @@ bool Logger::Init(const string& path, LogLevel min_level, string* err) {
         "FATAL"
     };
     start_ = NanoTime();
-    string line = StringPrintf("Start: Unix time %.9f", (double)start_ / 1e9);
+    string line = StringPrintf("Started at Unix time: %.9f", (double)start_ / 1e9);
     Log(LogLevel::INFO, line);
     return true;
 }
