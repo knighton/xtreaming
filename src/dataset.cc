@@ -163,7 +163,7 @@ bool Dataset::InitShards(string* err) {
         vector<std::thread> threads;
         threads.resize(streams_.size());
         for (int64_t i = 0; i < streams_.size(); ++i) {
-            threads[i] = std::thread(LoadIndex, i, &streams_[i], &shard_lists[i]);
+            threads[i] = std::thread(LoadIndex, i, &streams_[i], &shard_lists[i], &logger_);
         }
         for (auto& thread : threads) {
             thread.join();
