@@ -34,10 +34,10 @@ void AdjustCounts(int64_t have, int64_t want, int64_t size, default_random_engin
         return;
     }
     int64_t step = (have < want) ? 1 : -1L;
-    int64_t num_steps = step * (have - want);
+    int64_t num_steps = step * (want - have);
     assert(num_steps < size);
     uniform_int_distribution<int64_t> choose(0, size - 1);
-    vector<bool>chosen;
+    vector<bool> chosen;
     chosen.resize(size);
     for (int64_t i = 0; i < num_steps; ++i) {
         int64_t idx;
@@ -58,7 +58,7 @@ void SubsampleExtending(int64_t begin, int64_t count, int64_t choose, default_ra
     }
     shuffle(indices.begin(), indices.end(), *rng);
     for (int64_t i = 0; i < choose; ++i) {
-        values->emplace_back(i);
+        values->emplace_back(indices[i]);
     }
 }
 
@@ -108,7 +108,7 @@ void M2::Sample(const vector<Stream>& streams, const vector<Shard*>& shards, int
             auto& int_choose = shard_choose[j];
             double exact_choose = (double)int_choose * scale;
             double frac = exact_choose - (double)(int64_t)exact_choose;
-            bool one_more = frac < random_frac(rng);
+            bool one_more = random_frac(rng) < frac;
             int_choose = (int64_t)exact_choose + one_more;
             got_stream_choose += int_choose;
         }
