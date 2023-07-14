@@ -27,30 +27,36 @@ Naive* Naive::New(const json& obj, string* err) {
 }
 
 void Naive::Shuffle(const vector<int64_t>& shard_sizes, int64_t num_nodes, uint32_t seed,
-                    int64_t epoch, vector<int64_t>* sample_ids) {
+                    int64_t epoch, vector<int64_t>* sample_ids, Logger* logger) {
     UNUSED(num_nodes);
 
-    sample_ids->clear();
+    auto scope = logger->Scope("iter/shuffle/get");
 
-    int64_t total = 0;
-    for (auto& shard_size : shard_sizes) {
-        total += shard_size;
+    {
+        auto scope2 = logger->Scope("iter/shuffle/get/populate");
+        int64_t total = 0;
+        for (auto& shard_size : shard_sizes) {
+            total += shard_size;
+        }
+        sample_ids->clear();
+        sample_ids->reserve(total);
+        for (int64_t i = 0; i < total; ++i) {
+            sample_ids->emplace_back(i);
+        }
     }
 
-    sample_ids->reserve(total);
-    for (int64_t i = 0; i < total; ++i) {
-        sample_ids->emplace_back(i);
+    {
+        auto scope2 = logger->Scope("iter/shuffle/get/shuffle_samples");
+        random_device random;
+        default_random_engine engine(random());
+        engine.seed(seed + (uint32_t)epoch);
+        shuffle(sample_ids->begin(), sample_ids->end(), engine);
     }
-
-    random_device random;
-    default_random_engine engine(random());
-    engine.seed(seed + (uint32_t)epoch);
-    shuffle(sample_ids->begin(), sample_ids->end(), engine);
 }
 
 void Naive::Shuffle(const vector<int64_t>& shard_sizes, int64_t num_nodes, int64_t epoch,
-                    vector<int64_t>* sample_ids) {
-    Shuffle(shard_sizes, num_nodes, seed_, epoch, sample_ids);
+                    vector<int64_t>* sample_ids, Logger* logger) {
+    Shuffle(shard_sizes, num_nodes, seed_, epoch, sample_ids, logger);
 }
 
 }  //  namespace xtreaming

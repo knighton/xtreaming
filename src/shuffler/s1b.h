@@ -11,10 +11,11 @@ class S1B : public S1 {
     static S1B* New(const json& obj, string* err);
 
     static void Shuffle(const vector<int64_t>& shard_sizes, int64_t num_nodes, uint32_t seed,
-                        int64_t epoch, int64_t block_size, vector<int64_t>* sample_ids);
+                        int64_t epoch, int64_t block_size, vector<int64_t>* sample_ids,
+                        Logger* logger);
 
     void Shuffle(const vector<int64_t>& shard_sizes, int64_t num_nodes, int64_t epoch,
-                 vector<int64_t>* sample_ids) override;
+                 vector<int64_t>* sample_ids, Logger* logger) override;
 
   protected:
     int64_t block_size_;

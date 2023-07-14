@@ -25,39 +25,44 @@ S1N* S1N::New(const json& obj, string* err) {
 }
 
 void S1N::Shuffle(const vector<int64_t>& shard_sizes, int64_t num_nodes, uint32_t seed,
-                  int64_t epoch, vector<int64_t>* sample_ids) {
+                  int64_t epoch, vector<int64_t>* sample_ids, Logger* logger) {
+    auto scope = logger->Scope("iter/shuffle/get");
+
     // Shuffle the shards.
     int64_t num_samples;
     vector<pair<int64_t, int64_t>> spans;
     vector<pair<int64_t, int64_t>> meta_spans;
     default_random_engine epoch_rng;
     ShuffleShards(shard_sizes, num_nodes, seed, epoch, &num_samples, &spans, &meta_spans,
-                  &epoch_rng);
+                  &epoch_rng, logger);
 
     // Populate the global sample ID mapping, shuffling within each node.
-    sample_ids->clear();
-    sample_ids->resize(num_samples);
-    int64_t end = 0;
-    for (auto& meta_span : meta_spans) {
-        // Populate sample IDs.
-        int64_t node_begin = end;
-        for (int64_t i = meta_span.first; i < meta_span.second; ++i) {
-            auto& span = spans[i];
-            auto span_size = span.second - span.first;
-            for (int64_t j = 0; j < span_size; ++j) {
-                (*sample_ids)[end + j] = span.first + j;
+    {
+        auto scope2 = logger->Scope("iter/shuffle/get/populate_and_shuffle_intra_node");
+        sample_ids->clear();
+        sample_ids->resize(num_samples);
+        int64_t end = 0;
+        for (auto& meta_span : meta_spans) {
+            // Populate sample IDs.
+            int64_t node_begin = end;
+            for (int64_t i = meta_span.first; i < meta_span.second; ++i) {
+                auto& span = spans[i];
+                auto span_size = span.second - span.first;
+                for (int64_t j = 0; j < span_size; ++j) {
+                    (*sample_ids)[end + j] = span.first + j;
+                }
+                end += span_size;
             }
-            end += span_size;
-        }
 
-        // Shuffle within each node.
-        shuffle(&(*sample_ids)[node_begin], &(*sample_ids)[end], epoch_rng);
+            // Shuffle within each node.
+            shuffle(&(*sample_ids)[node_begin], &(*sample_ids)[end], epoch_rng);
+        }
     }
 }
 
 void S1N::Shuffle(const vector<int64_t>& shard_sizes, int64_t num_nodes, int64_t epoch,
-                  vector<int64_t>* sample_ids) {
-    Shuffle(shard_sizes, num_nodes, seed_, epoch, sample_ids);
+                  vector<int64_t>* sample_ids, Logger* logger) {
+    Shuffle(shard_sizes, num_nodes, seed_, epoch, sample_ids, logger);
 }
 
 }  // namespace xtreaming

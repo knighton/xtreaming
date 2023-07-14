@@ -58,31 +58,45 @@ void S1::BreakSpansOverNodes(int64_t num_samples, int64_t num_nodes,
 void S1::ShuffleShards(const vector<int64_t>& shard_sizes, int64_t num_nodes, uint32_t seed,
                        int64_t epoch, int64_t* num_samples, vector<pair<int64_t, int64_t>>* spans,
                        vector<pair<int64_t, int64_t>>* meta_spans,
-                       default_random_engine* epoch_rng) {
+                       default_random_engine* epoch_rng, Logger* logger) {
+    auto scope = logger->Scope("iter/shuffle/get/shuffle_shards");
+
     // Create each shard's sample ID span (begin, end excl).
-    spans->clear();
-    spans->reserve(shard_sizes.size());
-    *num_samples = 0;
-    for (auto& shard_size : shard_sizes) {
-        spans->emplace_back(make_pair(*num_samples, *num_samples + shard_size));
-        *num_samples += shard_size;
+    {
+        auto scope2 = logger->Scope("iter/shuffle/get/shuffle_shards/create_spans");
+        spans->clear();
+        spans->reserve(shard_sizes.size());
+        *num_samples = 0;
+        for (auto& shard_size : shard_sizes) {
+            spans->emplace_back(make_pair(*num_samples, *num_samples + shard_size));
+            *num_samples += shard_size;
+        }
     }
 
     // Generate the initial ordering of shards, which is fixed over an entire training run.
-    random_device random;
-    default_random_engine run_rng(random());
-    run_rng.seed(seed);
-    shuffle(spans->begin(), spans->end(), run_rng);
+    {
+        auto scope2 = logger->Scope("iter/shuffle/get/shuffle_shards/shuffle_spans");
+        random_device random;
+        default_random_engine run_rng(random());
+        run_rng.seed(seed);
+        shuffle(spans->begin(), spans->end(), run_rng);
+    }
 
     // Break the shard spans at node boundaries (modifies spans in-place).
-    BreakSpansOverNodes(*num_samples, num_nodes, spans, meta_spans);
+    {
+        auto scope2 = logger->Scope("iter/shuffle/get/shuffle_shards/break_spans_over_nodes");
+        BreakSpansOverNodes(*num_samples, num_nodes, spans, meta_spans);
+    }
 
     // Shuffle the span ordering within each node, uniquely to this epoch.
-    epoch_rng->seed(seed + (uint32_t)epoch);
-    for (auto& meta_span : *meta_spans) {
-        auto& begin = meta_span.first;
-        auto& end = meta_span.second;
-        shuffle(&(*spans)[begin], &(*spans)[end], *epoch_rng);
+    {
+        auto scope2 = logger->Scope("iter/shuffle/get/shuffle_shards/shuffle_spans_intra_node");
+        epoch_rng->seed(seed + (uint32_t)epoch);
+        for (auto& meta_span : *meta_spans) {
+            auto& begin = meta_span.first;
+            auto& end = meta_span.second;
+            shuffle(&(*spans)[begin], &(*spans)[end], *epoch_rng);
+        }
     }
 }
 

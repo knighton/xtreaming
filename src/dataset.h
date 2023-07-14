@@ -35,7 +35,7 @@ class Dataset {
     bool InitCaches(string* err);
 
     void SampleThread(int64_t epoch, vector<int64_t>* subshard_sizes,
-                      vector<int64_t>* fake_to_real, int64_t* t0, int64_t* t1);
+                      vector<int64_t>* fake_to_real);
 
     Logger logger_;
     vector<Stream> streams_;

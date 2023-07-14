@@ -12,10 +12,10 @@ class S1BR : public S1 {
 
     static void Shuffle(const vector<int64_t>& shard_sizes, int64_t num_nodes, uint32_t seed,
                         int64_t epoch, int64_t min_block_size, int64_t max_block_size,
-                        vector<int64_t>* sample_ids);
+                        vector<int64_t>* sample_ids, Logger* logger);
 
     void Shuffle(const vector<int64_t>& shard_sizes, int64_t num_nodes, int64_t epoch,
-                 vector<int64_t>* sample_ids) override;
+                 vector<int64_t>* sample_ids, Logger* logger) override;
 
   protected:
     static void ShuffleBlocks(int64_t thread_id, int64_t num_threads, uint32_t seed, int64_t epoch,

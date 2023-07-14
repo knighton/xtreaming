@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "base/json.h"
+#include "base/logger.h"
 
 using std::string;
 using std::vector;
@@ -21,7 +22,7 @@ class Shuffler {
     virtual bool Init(const json& obj, string *err);
 
     virtual void Shuffle(const vector<int64_t>& shard_sizes, int64_t num_nodes, int64_t epoch,
-                         vector<int64_t>* ids) = 0;
+                         vector<int64_t>* ids, Logger* logger) = 0;
 
   protected:
     string algo_;

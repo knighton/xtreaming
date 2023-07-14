@@ -158,6 +158,7 @@ bool Dataset::InitShards(string* err) {
     // Initialize each stream's shards from JSON in parallel.
     vector<vector<Shard*>> shard_lists;
     {
+        auto scope2 = logger_.Scope("init/shards/load_indexes");
         shard_lists.resize(streams_.size());
         vector<std::thread> threads;
         threads.resize(streams_.size());
@@ -171,6 +172,7 @@ bool Dataset::InitShards(string* err) {
 
     // Allocate space for the global list of shards.
     {
+        auto scope2 = logger_.Scope("init/shards/allocate_combined_shards");
         shards_.clear();
         int64_t num_shards = 0;
         for (auto& shards : shard_lists) {
@@ -181,6 +183,7 @@ bool Dataset::InitShards(string* err) {
 
     // Gather each stream's shards together into one global list.
     {
+        auto scope2 = logger_.Scope("init/shards/collect_combined_shards");
         int64_t shard_offset = 0;
         for (auto& shards : shard_lists) {
             int64_t num_bytes = shards.size() * sizeof(shards[0]);
@@ -191,6 +194,7 @@ bool Dataset::InitShards(string* err) {
 
     // Calculate stream shard/sample sizes/offsets.
     {
+        auto scope2 = logger_.Scope("init/shards/situate_streams");
         int64_t shard_offset = 0;
         int64_t sample_offset = 0;
         for (int64_t i = 0; i < streams_.size(); ++i) {
@@ -211,6 +215,7 @@ bool Dataset::InitShards(string* err) {
 
     // Calculate shard sample offsets.
     {
+        auto scope2 = logger_.Scope("init/shards/situate_shards");
         int64_t sample_offset = 0;
         for (auto& shard : shards_) {
             shard->set_sample_offset(sample_offset);
@@ -224,7 +229,6 @@ bool Dataset::InitShards(string* err) {
 
 bool Dataset::InitShardIndex(int64_t bucket_size, string* err) {
     auto scope = logger_.Scope("init/shard_index");
-
     vector<int64_t> shard_sizes;
     shard_sizes.reserve(shards_.size());
     for (auto& shard : shards_) {
@@ -236,7 +240,6 @@ bool Dataset::InitShardIndex(int64_t bucket_size, string* err) {
 
 bool Dataset::InitCaches(string* err) {
     auto scope = logger_.Scope("init/caches");
-
     vector<bool> is_shard_present;
     is_shard_present.resize(shards_.size());
     for (auto& stream : streams_) {
@@ -259,11 +262,11 @@ bool Dataset::Init(const json& obj, string* err) {
         [&]{ return InitDeterminer(obj, err); },
         [&]{ return InitShuffler(obj, err); },
         [&]{ return InitStreams(obj, err); },
-        [&]{ return Stream::CrosscheckWeights(streams_, &relative_weights, err); },
+        [&]{ return Stream::CrosscheckWeights(streams_, &relative_weights, &logger_, err); },
         [&]{ return InitShards(err); },
         [&]{ return InitShardIndex(bucket_size, err); },
         [&]{ return Stream::DeriveSampling(&streams_, relative_weights, sampler_->seed(),
-                                           sampler_->mutable_epoch_size(), err); },
+                                           sampler_->mutable_epoch_size(), &logger_, err); },
         [&]{ return InitCaches(err); },
     };
 
@@ -277,10 +280,8 @@ bool Dataset::Init(const json& obj, string* err) {
 }
 
 void Dataset::SampleThread(int64_t epoch, vector<int64_t>* subshard_sizes,
-                           vector<int64_t>* fake_to_real, int64_t* t0, int64_t* t1) {
-    *t0 = NanoTime();
-    sampler_->Sample(streams_, shards_, epoch, subshard_sizes, fake_to_real);
-    *t1 = NanoTime();
+                           vector<int64_t>* fake_to_real) {
+    sampler_->Sample(streams_, shards_, epoch, subshard_sizes, fake_to_real, &logger_);
 }
 
 namespace {
@@ -312,10 +313,8 @@ bool Dataset::Iter() {
     int64_t epoch = 0;
     vector<int64_t> subshard_sizes;
     vector<int64_t> fake_to_real;
-    int64_t t0;
-    int64_t t1;
     auto sampling_thread = std::thread(&Dataset::SampleThread, this, epoch, &subshard_sizes,
-                                       &fake_to_real, &t0, &t1);
+                                       &fake_to_real);
 
     // Order the global sample space across all nodes, ranks, and workers such that we have an
     // elastically deterministic sample ordering.
@@ -323,42 +322,46 @@ bool Dataset::Iter() {
     // This gives us:
     // * Tensor of shape (num physical nodes, ranks per node, workers per rank, batches per worker,
     //   samples per batch).
-    t0 = NanoTime();
+    xt::xarray<int64_t> sample_ids;
     int64_t num_physical_nodes = 16;
     int64_t ranks_per_node = 5;
     int64_t workers_per_rank = 7;
     int64_t sample_offset = 256;
-    xt::xarray<int64_t> sample_ids;
-    string err;
-    if (!determiner_->Determine(num_physical_nodes, ranks_per_node, workers_per_rank,
-                                sampler_->epoch_size(), sample_offset, &sample_ids, &err)) {
-        fprintf(stderr, "%s\n", err.c_str());
-        return false;
+    {
+        auto scope2 = logger_.Scope("iter/determine");
+        string err;
+        if (!determiner_->Determine(num_physical_nodes, ranks_per_node, workers_per_rank,
+                                    sampler_->epoch_size(), sample_offset, &sample_ids, &err)) {
+            fprintf(stderr, "%s\n", err.c_str());
+            return false;
+        }
     }
-    auto t = NanoTime() - t0;
-    printf("%10.6f Determinism\n", t / 1e9);
 
-    // Join the sampling thread.
+    // Join the sampling thread. Deterrinism takes much longer than sampling.
     sampling_thread.join();
-    t = t1 - t0;
-    printf("%10.6f Sampling\n", t / 1e9);
 
     // If we need to shuffle, shuffle in a node-aware and *underlying* shard-aware way.
-    t0 = NanoTime();
     if (shuffle_) {
+        auto scope2 = logger_.Scope("iter/shuffle");
+
+        // Generate the sample ID mapping.
         vector<int64_t> shuffle;
-        shuffler_->Shuffle(subshard_sizes, determiner_->num_canonical_nodes(), epoch, &shuffle);
-        Map(shuffle, &sample_ids);
+        shuffler_->Shuffle(subshard_sizes, determiner_->num_canonical_nodes(), epoch, &shuffle,
+                           &logger_);
+
+        // Appply that mapping.
+        {
+            auto scope3 = logger_.Scope("iter/shuffle/map");
+            Map(shuffle, &sample_ids);
+        }
     }
-    t = NanoTime() - t0;
-    printf("%10.6f Shuffling\n", t / 1e9);
 
     // Now that twe have partitioned and shuffled with fake resampled sample IDs, we don't need
     // them anymore, and now convert back to their underlying physical sample IDs.
-    t0 = NanoTime();
-    Map(fake_to_real, &sample_ids);
-    t = NanoTime() - t0;
-    printf("%10.6f Mapping\n", t / 1e9);
+    {
+        auto scope2 = logger_.Scope("iter/map");
+        Map(fake_to_real, &sample_ids);
+    }
 
     return true;
 }

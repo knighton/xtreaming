@@ -11,10 +11,10 @@ class S1S : public S1 {
     static S1S* New(const json& obj, string* err);
 
     static void Shuffle(const vector<int64_t>& shard_sizes, int64_t num_nodes, uint32_t seed,
-                        int64_t epoch, vector<int64_t>* sample_ids);
+                        int64_t epoch, vector<int64_t>* sample_ids, Logger* logger);
 
     void Shuffle(const vector<int64_t>& shard_sizes, int64_t num_nodes, int64_t epoch,
-                 vector<int64_t>* sample_ids) override;
+                 vector<int64_t>* sample_ids, Logger* logger) override;
 };
 
 }  // namespace xtreaming

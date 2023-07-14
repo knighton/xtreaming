@@ -22,10 +22,10 @@ class S1 : public Shuffler {
                               int64_t epoch, int64_t* num_samples,
                               vector<pair<int64_t, int64_t>>* spans,
                               vector<pair<int64_t, int64_t>>* meta_spans,
-                              default_random_engine* epoch_rng);
+                              default_random_engine* epoch_rng, Logger* logger);
 
     virtual void Shuffle(const vector<int64_t>& shard_sizes, int64_t num_nodes, int64_t epoch,
-                         vector<int64_t>* sample_ids) override = 0;
+                         vector<int64_t>* sample_ids, Logger* logger) override = 0;
 };
 
 }  // namespace xtreaming

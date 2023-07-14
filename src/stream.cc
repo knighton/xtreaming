@@ -118,7 +118,10 @@ bool Stream::Init(const json& obj, const json& all, string* err) {
     return true;
 }
 
-bool Stream::CrosscheckWeights(const vector<Stream>& streams, bool* relative, string* err) {
+bool Stream::CrosscheckWeights(const vector<Stream>& streams, bool* relative, Logger* logger,
+                               string* err) {
+    auto scope = logger->Scope("init/crosscheck_weights");
+
     int num_relative = 0;
     for (auto& stream : streams) {
         num_relative += (0 <= stream.proportion());
@@ -232,7 +235,9 @@ bool Stream::DeriveSamplingAbsolutely(vector<Stream>* streams, int64_t* epoch_si
 }
 
 bool Stream::DeriveSampling(vector<Stream>* streams, bool relative, uint32_t seed,
-                            int64_t* epoch_size, string* err) {
+                            int64_t* epoch_size, Logger* logger, string* err) {
+    auto scope = logger->Scope("init/derive_sampling");
+
     if (relative) {
         return DeriveSamplingRelatively(streams, seed, epoch_size, err);
     } else {

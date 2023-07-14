@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "base/json.h"
+#include "base/logger.h"
 #include "serial/base/shard.h"
 
 using std::string;
@@ -44,11 +45,12 @@ class Stream {
     bool Init(const json& obj, const json& all, string* err);
 
     // Verify that all streams are weighted either in absolute terms or relatively.
-    static bool CrosscheckWeights(const vector<Stream>& streams, bool* relative, string* err);
+    static bool CrosscheckWeights(const vector<Stream>& streams, bool* relative, Logger* logger,
+                                  string* err);
 
     // Drive how the streams are sampled given stream weights and underlying sizes.
     static bool DeriveSampling(vector<Stream>* streams, bool relative, uint32_t seed,
-                               int64_t* epoch_size, string* err);
+                               int64_t* epoch_size, Logger* logger, string* err);
 
     // Scan my local dir, normalizing files and gathering which shards are present.
     void CheckLocalDir(const vector<Shard*> shards, vector<bool>* is_present) const;
