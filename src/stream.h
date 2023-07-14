@@ -15,6 +15,8 @@ namespace xtreaming {
 
 class Stream {
   public:
+    const string& name() const { return name_; }
+
     const string& remote() const { return remote_; }
     const string& local() const { return local_; }
     const string& split() const { return split_; }
@@ -42,7 +44,7 @@ class Stream {
     void set_num_samples(int64_t num_samples) { num_samples_ = num_samples; }
 
     // Initialize from its config and a backup config shared by all streams.
-    bool Init(const json& obj, const json& all, string* err);
+    bool Init(const string& name, const json& obj, const json& all, string* err);
 
     // Verify that all streams are weighted either in absolute terms or relatively.
     static bool CrosscheckWeights(const vector<Stream>& streams, bool* relative, Logger* logger,
@@ -61,6 +63,9 @@ class Stream {
                                          int64_t* epoch_size, string* err);
     static bool DeriveSamplingAbsolutely(vector<Stream>* streams, int64_t* epoch_size,
                                          string* err);
+
+    string name_;  // Human-readable name of this stream (used to make streaming more
+                   // user-friendly; not used internally).
 
     // Paths.
 

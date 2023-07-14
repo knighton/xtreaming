@@ -129,7 +129,7 @@ bool Dataset::InitStreams(const json& obj, string* err) {
         // `stream` is taken as the single stream, as `streams` is not provided.
         streams_.resize(1);
         auto& stream = streams_[0];
-        if (!stream.Init(*all, *all, err)) {
+        if (!stream.Init("", *all, *all, err)) {
             return false;
         }
     } else {
@@ -142,7 +142,7 @@ bool Dataset::InitStreams(const json& obj, string* err) {
         streams_.resize(streams->size());
         int64_t i = 0;
         for (auto it : streams->items()) {
-            if (!streams_[i].Init(it.value(), *all, err)) {
+            if (!streams_[i].Init(it.key(), it.value(), *all, err)) {
                 return false;
             }
             ++i;

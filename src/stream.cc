@@ -28,7 +28,9 @@ string DeriveLocal(const string& remote, const string& split) {
 
 }  // namespace
 
-bool Stream::Init(const json& obj, const json& all, string* err) {
+bool Stream::Init(const string& name, const json& obj, const json& all, string* err) {
+    name_ = name;
+
     // Init paths:
 
     if (!GetString(obj, "remote", "", &remote_, err)) {
