@@ -242,6 +242,19 @@ void Dataset::SampleThread(int64_t epoch, vector<int64_t>* subshard_sizes,
     *t1 = NanoTime();
 }
 
+namespace {
+
+void Map(const vector<int64_t>& mapping, xt::xarray<int64_t>* ids) {
+    for (int64_t i = 0; i < ids->size(); ++i) {
+        auto& id = ids->data()[i];
+        if (id != -1L) {
+            id = mapping[id];
+        }
+    }
+}
+
+}  // namespace
+
 bool Dataset::Bench() {
     // Sample each shard of each stream according to its weight.
     //
@@ -292,12 +305,7 @@ bool Dataset::Bench() {
     if (shuffle_) {
         vector<int64_t> shuffle;
         shuffler_->Shuffle(subshard_sizes, determiner_->num_canonical_nodes(), epoch, &shuffle);
-        for (int64_t i = 0; i < sample_ids.size(); ++i) {
-            auto& sample_id = sample_ids.data()[i];
-            if (sample_id != -1L) {
-                sample_id = shuffle[sample_id];
-            }
-        }
+        Map(shuffle, &sample_ids);
     }
     t = NanoTime() - t0;
     printf("%10.6f Shuffling\n", t / 1e9);
@@ -305,13 +313,7 @@ bool Dataset::Bench() {
     // Now that twe have partitioned and shuffled with fake resampled sample IDs, we don't need
     // them anymore, and now convert back to their underlying physical sample IDs.
     t0 = NanoTime();
-    auto data = sample_ids.data();
-    for (int64_t i = 0; i < sample_ids.size(); ++i) {
-        auto& sample_id = data[i];
-        if (sample_id != -1L) {
-            sample_id = fake_to_real[sample_id];
-        }
-    }
+    Map(fake_to_real, &sample_ids);
     t = NanoTime() - t0;
     printf("%10.6f Mapping\n", t / 1e9);
 
