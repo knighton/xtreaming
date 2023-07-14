@@ -15,6 +15,26 @@ using std::function;
 
 namespace xtreaming {
 
+bool Dataset::InitLogger(const json& obj, string* err) {
+    json empty;
+    const json* section;
+    if (!GetObject(obj, "logger", &empty, &section, err)) {
+        return false;
+    }
+
+    string log;
+    if (!GetString(*section, "log", "/dev/null", &log, err)) {
+        return false;
+    }
+
+    string level;
+    if (!GetString(*section, "level", "fatal", &level, err)) {
+        return false;
+    }
+
+    return logger_.Init(log, level, err);
+}
+
 bool Dataset::InitShardIndexArgs(const json& obj, int64_t* bucket_size, string* err) {
     json empty;
     const json* section;
@@ -213,6 +233,7 @@ bool Dataset::Init(const json& obj, string* err) {
     int64_t bucket_size;
     bool relative_weights;
     vector<function<bool()>> stages = {
+        [&]{ return InitLogger(obj, err); },
         [&]{ return InitShardIndexArgs(obj, &bucket_size, err); },
         [&]{ return InitSampler(obj, err); },
         [&]{ return InitDeterminer(obj, err); },

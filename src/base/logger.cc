@@ -40,6 +40,7 @@ bool Logger::Init(const string& path, LogLevel min_level, string* err) {
     path_ = path;
     file_ = fopen(path.c_str(), "ab");
     if (!file_) {
+        *err = StringPrintf("Unable to open file: `%s`.", path.c_str());
         return false;
     }
 

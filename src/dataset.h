@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "base/json.h"
+#include "base/logger.h"
 #include "base/spanner.h"
 #include "determiner/determiner.h"
 #include "serial/base/shard.h"
@@ -23,6 +24,7 @@ class Dataset {
     bool Bench();
 
   private:
+    bool InitLogger(const json& obj, string* err);
     bool InitShardIndexArgs(const json& obj, int64_t* bucket_size, string* err);
     bool InitSampler(const json& obj, string* err);
     bool InitDeterminer(const json& obj, string* err);
@@ -35,6 +37,7 @@ class Dataset {
     void SampleThread(int64_t epoch, vector<int64_t>* subshard_sizes,
                       vector<int64_t>* fake_to_real, int64_t* t0, int64_t* t1);
 
+    Logger logger_;
     vector<Stream> streams_;
     vector<Shard*> shards_;
     Spanner shard_index_;

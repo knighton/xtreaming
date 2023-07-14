@@ -1,4 +1,7 @@
 version: x0.0
+logger:
+  log: /dev/stdout
+  level: trace
 stream:
   remote: null
   local: null
