@@ -36,7 +36,7 @@ int main() {
         return 3;
     }
 
-    assert(dataset.Bench());
+    assert(dataset.Iter());
 
     // Sleep.
     // std::this_thread::sleep_for(60s);

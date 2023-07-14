@@ -21,11 +21,11 @@ class Dataset {
   public:
     bool Init(const json& obj, string* err);
 
-    bool Bench();
+    bool Iter();
 
   private:
     bool InitLogger(const json& obj, string* err);
-    bool InitShardIndexArgs(const json& obj, int64_t* bucket_size, string* err);
+    bool GetShardIndexArgs(const json& obj, int64_t* bucket_size, string* err);
     bool InitSampler(const json& obj, string* err);
     bool InitDeterminer(const json& obj, string* err);
     bool InitShuffler(const json& obj, string* err);

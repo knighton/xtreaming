@@ -35,7 +35,9 @@ bool Dataset::InitLogger(const json& obj, string* err) {
     return logger_.Init(log, level, err);
 }
 
-bool Dataset::InitShardIndexArgs(const json& obj, int64_t* bucket_size, string* err) {
+bool Dataset::GetShardIndexArgs(const json& obj, int64_t* bucket_size, string* err) {
+    auto scope = logger_.Scope("init/shard_index_args");
+
     json empty;
     const json* section;
     if (!GetObject(obj, "shard_index", &empty, &section, err)) {
@@ -55,6 +57,8 @@ bool Dataset::InitShardIndexArgs(const json& obj, int64_t* bucket_size, string* 
 }
 
 bool Dataset::InitSampler(const json& obj, string* err) {
+    auto scope = logger_.Scope("init/sampler");
+
     json empty;
     const json* section;
     if (!GetObject(obj, "sampler", &empty, &section, err)) {
@@ -70,6 +74,8 @@ bool Dataset::InitSampler(const json& obj, string* err) {
 }
 
 bool Dataset::InitDeterminer(const json& obj, string* err) {
+    auto scope = logger_.Scope("init/determiner");
+
     json empty;
     const json* section;
     if (!GetObject(obj, "determiner", &empty, &section, err)) {
@@ -85,6 +91,8 @@ bool Dataset::InitDeterminer(const json& obj, string* err) {
 }
 
 bool Dataset::InitShuffler(const json& obj, string* err) {
+    auto scope = logger_.Scope("init/shuffler");
+
     json empty;
     const json* section;
     if (!GetBool(obj, "shuffle", false, &shuffle_, err)) {
@@ -104,6 +112,8 @@ bool Dataset::InitShuffler(const json& obj, string* err) {
 }
 
 bool Dataset::InitStreams(const json& obj, string* err) {
+    auto scope = logger_.Scope("init/streams");
+
     json empty;
     const json* all;
     if (!GetObject(obj, "stream", &empty, &all, err)) {
@@ -143,6 +153,8 @@ bool Dataset::InitStreams(const json& obj, string* err) {
 }
 
 bool Dataset::InitShards(string* err) {
+    auto scope = logger_.Scope("init/shards");
+
     // Initialize each stream's shards from JSON in parallel.
     vector<vector<Shard*>> shard_lists;
     {
@@ -211,6 +223,8 @@ bool Dataset::InitShards(string* err) {
 }
 
 bool Dataset::InitShardIndex(int64_t bucket_size, string* err) {
+    auto scope = logger_.Scope("init/shard_index");
+
     vector<int64_t> shard_sizes;
     shard_sizes.reserve(shards_.size());
     for (auto& shard : shards_) {
@@ -221,6 +235,8 @@ bool Dataset::InitShardIndex(int64_t bucket_size, string* err) {
 }
 
 bool Dataset::InitCaches(string* err) {
+    auto scope = logger_.Scope("init/caches");
+
     vector<bool> is_shard_present;
     is_shard_present.resize(shards_.size());
     for (auto& stream : streams_) {
@@ -230,10 +246,14 @@ bool Dataset::InitCaches(string* err) {
 }
 
 bool Dataset::Init(const json& obj, string* err) {
+    if (!InitLogger(obj, err)) {
+        return false;
+    }
+
+    auto scope = logger_.Scope("init");
     int64_t bucket_size;
     bool relative_weights;
     vector<function<bool()>> stages = {
-        [&]{ return InitLogger(obj, err); },
         [&]{ return InitShardIndexArgs(obj, &bucket_size, err); },
         [&]{ return InitSampler(obj, err); },
         [&]{ return InitDeterminer(obj, err); },
@@ -276,7 +296,9 @@ void Map(const vector<int64_t>& mapping, xt::xarray<int64_t>* ids) {
 
 }  // namespace
 
-bool Dataset::Bench() {
+bool Dataset::Iter() {
+    auto scope = logger_.Scope("iter");
+
     // Sample each shard of each stream according to its weight.
     //
     // This gives us:
