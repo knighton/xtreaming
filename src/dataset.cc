@@ -159,14 +159,29 @@ bool Dataset::InitShards(string* err) {
     vector<vector<Shard*>> shard_lists;
     {
         auto scope2 = logger_.Scope("init/shards/load_indexes");
-        shard_lists.resize(streams_.size());
+
+        // Launch threads.
         vector<std::thread> threads;
         threads.resize(streams_.size());
+        shard_lists.resize(streams_.size());
+        vector<string> thread_errs;
+        thread_errs.resize(streams_.size());
         for (int64_t i = 0; i < streams_.size(); ++i) {
-            threads[i] = std::thread(LoadIndex, i, &streams_[i], &shard_lists[i], &logger_);
+            threads[i] = std::thread(LoadIndex, i, &streams_[i], &shard_lists[i], &logger_,
+                                     &thread_errs[i]);
         }
+
+        // Join threads.
         for (auto& thread : threads) {
             thread.join();
+        }
+
+        // If any of the threads errored out, we error out.
+        for (auto& thread_err : thread_errs) {
+            if (!thread_err.empty()) {
+                *err = thread_err;
+                return false;
+            }
         }
     }
 

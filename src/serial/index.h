@@ -11,6 +11,7 @@ using std::vector;
 
 namespace xtreaming {
 
-void LoadIndex(int64_t stream_id, const Stream* stream, vector<Shard*>* shards, Logger* logger);
+void LoadIndex(int64_t stream_id, const Stream* stream, vector<Shard*>* shards, Logger* logger,
+               string* err);
 
 }  // namespace xtreaming

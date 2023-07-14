@@ -8,7 +8,8 @@
 
 namespace xtreaming {
 
-void LoadIndex(int64_t stream_id, const Stream* stream, vector<Shard*>* shards, Logger* logger) {
+void LoadIndex(int64_t stream_id, const Stream* stream, vector<Shard*>* shards, Logger* logger,
+               string* err) {
     // Maybe log scope enter/exit.
     string stream_name;
     if (stream->name().empty()) {
@@ -25,7 +26,10 @@ void LoadIndex(int64_t stream_id, const Stream* stream, vector<Shard*>* shards, 
     auto basename = stream->index().size() ? stream->index().c_str() : "index.json";
     string filename = StringPrintf("%s/%s/%s", local, split, basename);
     FILE* file = fopen(filename.c_str(), "rb");
-    assert(file);
+    if (!file) {
+        *err = StringPrintf("Unable to open file: `%s`.", filename.c_str());
+        return;
+    }
 
     // Parse the index file.
     json obj;
@@ -33,7 +37,7 @@ void LoadIndex(int64_t stream_id, const Stream* stream, vector<Shard*>* shards, 
         auto scope2 = logger->Scope(base_scope_name + "/read_and_parse");
         obj = json::parse(file);
     } catch (const json::parse_error& e) {
-        fprintf(stderr, "%s\n", e.what());
+        *err = e.what();
         return;
     }
 
@@ -47,9 +51,13 @@ void LoadIndex(int64_t stream_id, const Stream* stream, vector<Shard*>* shards, 
             shards->emplace_back(shard);
         }
     } else {
-        fprintf(stderr, "Index is missing `shards` array.\n");
+        *err = "Index is missing `shards` array.\n";
         return;
     }
+
+    // Clear `err` to be safe. Normally we don't clear err on success, relying on returning true
+    // signaling it instead, but we can't do that here because we're a thread.
+    err->clear();
 }
 
 }  // namespace xtreaming
